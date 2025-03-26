@@ -1,0 +1,20 @@
+services:
+  survey:
+    build:
+      context: ./
+      dockerfile: dockerfile.survey
+    image: AskAround/survey:1.0
+    volumes:
+      - ./secrets:/secrets
+    environment:
+      - SURVEY_DB_KEY=/secrets/firebase_key.json
+    # restart: always
+    container_name: survey
+    ports:
+      - "5001:5001"
+    networks:
+      - surveyNetwork
+      
+networks:
+  surveyNetwork:
+    driver: bridge
