@@ -63,8 +63,8 @@ def getAllSurveys():
 
 
 @app.route('/user/<id>', methods=['GET'])
-def getAnsweredQuestions(id):
-    """Endpoint to retrieve the specific user's questions answered databank"""
+def getSpecificUserData(id):
+    """Endpoint to retrieve the specific user's data"""
     try:
         user_ref = db.collection('users').document(id)
         user_doc = user_ref.get()
@@ -89,7 +89,36 @@ def getAnsweredQuestions(id):
             'success': False,
             'error': str(e)
         }), 500
-    
+
+@app.route('/user/savedquestion/<id>', methods=['GET'])
+def getSavedQuestions(id):
+    """Endpoint to retrieve the specific user's data"""
+    try:
+        user_ref = db.collection('users').document(id)
+        user_doc = user_ref.get()
+
+        # Check if the user document exists
+        if not user_doc.exists:
+            return jsonify({
+                'success': False,
+                'error': 'User not found'
+            }), 404
+            
+        # Convert document to dictionary
+        user_data = user_doc.to_dict() or {}
+        savedQuestions = user_data.get("saved_questions", [])
+
+        return jsonify({
+            'success': True,
+            'data': savedQuestions
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 @app.route('/user/add/<id>', methods=['PUT'])
 def addToResponded(id):
@@ -105,7 +134,7 @@ def addToResponded(id):
 
         if not user_doc.exists:
             user_ref.set({
-                'responded_questions': [{
+                'saved_questions': [{
                     'question': question,
                     'response': response,
                     'timestamp': datetime.now(timezone.utc).isoformat()
@@ -114,7 +143,7 @@ def addToResponded(id):
         else:
             # Update the existing user document by adding the new response
             user_ref.update({
-                'responded_questions': firestore.ArrayUnion([{
+                'saved_questions': firestore.ArrayUnion([{
                     'question': question,
                     'response': response,
                     'timestamp': datetime.now(timezone.utc).isoformat()

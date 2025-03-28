@@ -123,7 +123,7 @@ export const useUserSurveys = (userId) => {
     loading,
     error,
     userData,
-    answeredSurveys: userData.answered_surveys || [],
+    savedSurveys: userData.saved_questions || [],
     toBeAnsweredSurveys,
     markSurveyAsAnswered,
     refetch: fetchUserData,

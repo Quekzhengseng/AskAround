@@ -1,43 +1,20 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useUserSurveys } from "../hooks";
 
 export default function Profile() {
-  const [addedQuestions, setAddedQuestions] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const userId = "user_data-001";
 
-  // Load saved questions from local storage on component mount
-  useEffect(() => {
-    const loadQuestions = () => {
-      setIsLoading(true);
-      try {
-        const savedQuestions = localStorage.getItem("questions");
-        if (savedQuestions) {
-          setAddedQuestions(JSON.parse(savedQuestions));
-        }
-      } catch (error) {
-        console.error("Failed to load questions from local storage:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Use the custom hook to get user survey data
+  const { loading, error, savedSurveys } = useUserSurveys(userId);
 
-    loadQuestions();
-  }, []);
+  console.log("Saved surveys:", savedSurveys);
 
-  // Delete a question by its index
-  const deleteQuestion = (index) => {
-    const updatedQuestions = [...addedQuestions];
-    updatedQuestions.splice(index, 1);
-
-    setAddedQuestions(updatedQuestions);
-
-    // Update local storage
-    try {
-      localStorage.setItem("questions", JSON.stringify(updatedQuestions));
-    } catch (error) {
-      console.error("Failed to update local storage:", error);
-    }
+  // Function to delete a saved survey (if needed)
+  const deleteSavedSurvey = (index) => {
+    // This would need to call an API to remove the saved survey
+    console.log("Delete survey at index:", index);
   };
 
   return (
@@ -65,11 +42,15 @@ export default function Profile() {
           </Link>
         </div>
 
-        {isLoading ? (
+        {loading ? (
           <div className="flex justify-center py-12">
             <div className="w-8 h-8 border-4 border-purple-400 rounded-full border-t-transparent animate-spin"></div>
           </div>
-        ) : addedQuestions.length === 0 ? (
+        ) : error ? (
+          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+            <p>Error loading saved questions: {error}</p>
+          </div>
+        ) : savedSurveys.length === 0 ? (
           <div className="bg-white rounded-xl shadow-md p-8 text-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -86,33 +67,31 @@ export default function Profile() {
               />
             </svg>
             <h2 className="text-xl font-medium text-gray-700 mb-2">
-              No saved questions yet
+              No saved surveys yet
             </h2>
-            <p className="text-gray-500">
-              Add questions from the survey to see them here.
-            </p>
+            <p className="text-gray-500">Complete surveys to see them here.</p>
             <Link
               href="/"
               className="mt-6 inline-block bg-purple-600 hover:bg-purple-700 text-white py-2 px-6 rounded-lg transition-colors duration-300"
             >
-              Return to Survey
+              Take a Survey
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {addedQuestions.map((item, index) => (
+            {savedSurveys.map((item, index) => (
               <div
                 key={index}
                 className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
               >
                 <div className="bg-purple-100 px-4 py-3 flex justify-between items-center">
                   <h3 className="font-medium text-purple-800">
-                    Question #{index + 1}
+                    Survey #{index + 1}
                   </h3>
                   <button
-                    onClick={() => deleteQuestion(index)}
+                    onClick={() => deleteSavedSurvey(index)}
                     className="text-red-500 hover:text-red-700 transition-colors duration-300"
-                    aria-label="Delete question"
+                    aria-label="Delete survey"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -135,11 +114,19 @@ export default function Profile() {
                     </h4>
                     <p className="text-gray-800">{item.question}</p>
                   </div>
-                  <div>
+                  <div className="mb-4">
                     <h4 className="text-sm font-medium text-gray-500 mb-1">
                       Answer:
                     </h4>
-                    <p className="text-gray-800">{item.answer}</p>
+                    <p className="text-gray-800">{item.response}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">
+                      Completed On:
+                    </h4>
+                    <p className="text-gray-800">
+                      {new Date(item.timestamp).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
               </div>

@@ -74,6 +74,14 @@ export const UserAPI = {
   },
 
   /**
+   * Get all user data for saved questions
+   */
+  getSavedQuestions: async (userId) => {
+    const response = await apiRequest(`/user/savedquestion/${userId}`);
+    return response.data;
+  },
+
+  /**
    * Add a question response for a specific user
    */
   addQuestionResponse: async (userId, question, answer) => {

@@ -210,9 +210,17 @@ const QuestionCard = ({ question, answer, setAnswer, onNext }) => {
       transition={{ duration: 0.5, ease: [0.2, 0, 0, 1] }}
       className="w-full max-w-2xl mx-auto py-10"
     >
-      <h2 className="text-2xl font-bold mb-8 font-display">
-        {question.question}
-      </h2>
+      <div className="flex items-start justify-between mb-8">
+        <h2 className="text-2xl font-bold font-display">{question.question}</h2>
+
+        {/* Addable indicator */}
+        {question.addable && (
+          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
+            Addable
+          </span>
+        )}
+      </div>
+
       {renderQuestionInput()}
     </motion.div>
   );
