@@ -24,13 +24,13 @@ sample_survey = [{
             "type": QUESTION_TYPES["SHORT_TEXT"],
             "question": "What's your name?",
             "placeholder": "Type your answer here...",
-            "required": True,
+            "addable": True,
         },
         {
             "id": "q2",
             "type": QUESTION_TYPES["YES_NO"],
             "question": "Are you a student?",
-            "required": True,
+            "addable": False,
         },
         {
             "id": "q3",
@@ -43,27 +43,27 @@ sample_survey = [{
                 "School Of Law",
                 "Other",
             ],
-            "required": True,
+            "addable": True,
         },
         {
             "id": "q4",
             "type": QUESTION_TYPES["RATING"],
             "question": "How would you rate the overall toilet experience in Singapore Management University?",
             "scale": 5,
-            "required": True,
+            "addable": True,
         },
         {
             "id": "q5",
             "type": QUESTION_TYPES["LONG_TEXT"],
             "question": "Do you have any suggestions for toilet improvement?",
             "placeholder": "Share your thoughts here...",
-            "required": False,
+            "addable": True,
         },
         {
             "id": "q6",
             "type": QUESTION_TYPES["YES_NO"],
             "question": "Do you think the toilets in Singapore Management University need refurbishment?",
-            "required": True,
+            "addable": False,
         },
     ],
 }, 
@@ -77,7 +77,7 @@ sample_survey = [{
             "type": QUESTION_TYPES["SHORT_TEXT"],
             "question": "What's your student ID?",
             "placeholder": "Enter your student ID...",
-            "required": True,
+            "addable": False,
         },
         {
             "id": "q2",
@@ -92,7 +92,7 @@ sample_survey = [{
                 "Air fresheners",
                 "Good lighting"
             ],
-            "required": True,
+            "addable": True,
         },
         {
             "id": "q3",
@@ -104,20 +104,20 @@ sample_survey = [{
                 "Evening (5pm-10pm)",
                 "Late night (After 10pm)"
             ],
-            "required": True,
+            "addable": False,
         },
         {
             "id": "q4",
             "type": QUESTION_TYPES["RATING"],
             "question": "How would you rate the cleanliness of the toilets?",
             "scale": 5,
-            "required": True,
+            "addable": True,
         },
         {
             "id": "q5",
             "type": QUESTION_TYPES["YES_NO"],
             "question": "Have you ever found an SMU toilet out of service when you needed it?",
-            "required": True,
+            "addable": False,
         },
         {
             "id": "q6",
@@ -129,13 +129,13 @@ sample_survey = [{
                 "2-3 times per week",
                 "Once a week or less"
             ],
-            "required": True,
+            "addable": False,
         },
         {
             "id": "q7",
             "type": QUESTION_TYPES["YES_NO"],
             "question": "Do you think there are enough toilets in SMU?",
-            "required": True,
+            "addable": False,
         },
         {
             "id": "q8",
@@ -146,21 +146,21 @@ sample_survey = [{
                 "Ground floor",
                 "Higher floors"
             ],
-            "required": False,
+            "addable": True,
         },
         {
             "id": "q9",
             "type": QUESTION_TYPES["RATING"],
             "question": "How would you rate the privacy of the toilet cubicles?",
             "scale": 5,
-            "required": True,
+            "addable": True,
         },
         {
             "id": "q10",
             "type": QUESTION_TYPES["SHORT_TEXT"],
             "question": "What's the biggest issue you've encountered in SMU toilets?",
             "placeholder": "Please describe briefly...",
-            "required": False,
+            "addable": True,
         },
         {
             "id": "q11",
@@ -176,33 +176,33 @@ sample_survey = [{
                 "Better lighting",
                 "Better hand soap"
             ],
-            "required": True,
+            "addable": True,
         },
         {
             "id": "q12",
             "type": QUESTION_TYPES["DATE"],
             "question": "When did you last notice any maintenance issues in an SMU toilet?",
-            "required": False,
+            "addable": True,
         },
         {
             "id": "q13",
             "type": QUESTION_TYPES["YES_NO"],
             "question": "Are the hand dryers in SMU toilets effective?",
-            "required": True,
+            "addable": False,
         },
         {
             "id": "q14",
             "type": QUESTION_TYPES["EMAIL"],
             "question": "Please provide your email if you'd like to participate in future facility improvement surveys",
             "placeholder": "your.email@example.com",
-            "required": False,
+            "addable": False,
         },
         {
             "id": "q15",
             "type": QUESTION_TYPES["LONG_TEXT"],
             "question": "If you could redesign the SMU toilets, what changes would you make?",
             "placeholder": "Share your design ideas here...",
-            "required": False,
+            "addable": True,
         }
     ],
 }]

@@ -8,13 +8,14 @@ services:
       - ./secrets:/secrets
     environment:
       - SURVEY_DB_KEY=/secrets/firebase_key.json
+      - PYTHONUNBUFFERED=1
     # restart: always
     container_name: survey
     ports:
       - "5001:5001"
     networks:
       - surveyNetwork
-      
+
 networks:
   surveyNetwork:
     driver: bridge

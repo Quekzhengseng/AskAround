@@ -1,11 +1,67 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import SurveyContainer from "./components/survey/SurveyContainer";
-import { sampleSurvey } from "./lib/dummyData";
 import Link from "next/link";
+import { useUserToBeAnsweredSurveys } from "./hooks";
 
 export default function Home() {
+  // You can replace this with actual user ID from authentication
+  const userId = "user_data-001";
+
+  // Fetch surveys using our custom hook
+  const {
+    surveys: toBeAnsweredSurveys,
+    loading,
+    error,
+    refetch,
+  } = useUserToBeAnsweredSurveys(userId);
+
+  // State to track the currently displayed survey
+  const [currentSurvey, setCurrentSurvey] = useState(null);
+  const [remainingSurveys, setRemainingSurveys] = useState([]);
+
+  // Set the first to-be-answered survey as current when data loads
+  useEffect(() => {
+    if (toBeAnsweredSurveys && toBeAnsweredSurveys.length > 0 && !loading) {
+      setCurrentSurvey(toBeAnsweredSurveys[0]);
+      setRemainingSurveys(toBeAnsweredSurveys.slice(1));
+    }
+  }, [toBeAnsweredSurveys, loading]);
+
+  // Handle survey completion with prefetching
+  const handleSurveyComplete = () => {
+    // Move to the next survey if available immediately
+    if (remainingSurveys.length > 0) {
+      // Set the current survey to the next one right away
+      setCurrentSurvey(remainingSurveys[0]);
+      setRemainingSurveys((prev) => prev.slice(1));
+
+      // Refetch in the background without waiting
+      refetch();
+    } else {
+      setCurrentSurvey(null);
+      // Still refetch to ensure we don't miss any new surveys
+      refetch();
+    }
+  };
+
+  // Add prefetching when the user is likely to finish soon
+  useEffect(() => {
+    // This will trigger prefetching when the component mounts
+    // and whenever the surveys or current survey changes
+    const prefetchNextSurveys = async () => {
+      // If we have remaining surveys, but they're running low (less than 3)
+      // prefetch the next batch to have them ready
+      if (remainingSurveys.length < 3 && remainingSurveys.length > 0) {
+        // Prefetch in the background
+        refetch();
+      }
+    };
+
+    prefetchNextSurveys();
+  }, [remainingSurveys.length, refetch]);
+
   return (
     <div className="min-h-screen bg-linear-135/oklch from-white via-purple-50 to-blue-100/40">
       <main className="container mx-auto px-4 py-12">
@@ -17,7 +73,7 @@ export default function Home() {
               AskAround
             </h1>
             <p className="text-gray-600">
-              Survey Platform for Data Curators and Data Providors
+              Survey Platform for Data Curators and Data Providers
             </p>
           </div>
 
@@ -44,11 +100,57 @@ export default function Home() {
           </div>
         </header>
 
-        <SurveyContainer survey={sampleSurvey} />
+        {/* Loading state */}
+        {loading && (
+          <div className="flex justify-center items-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
+            <p className="font-medium">There was an error loading surveys</p>
+            <p className="text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* No surveys available */}
+        {!loading && !error && !currentSurvey && (
+          <div className="text-center py-16">
+            <h2 className="text-2xl font-medium text-gray-700 mb-2">
+              No Surveys Available
+            </h2>
+            <p className="text-gray-500">
+              Check back later for new surveys to answer.
+            </p>
+          </div>
+        )}
+
+        {/* Survey container */}
+        {!loading && !error && currentSurvey && (
+          <div className="transition-opacity duration-300 ease-in-out">
+            <SurveyContainer
+              key={currentSurvey.id} // Add key to force re-render
+              survey={currentSurvey}
+              userId={userId}
+              onComplete={handleSurveyComplete}
+            />
+
+            {/* Display count of remaining surveys */}
+            {remainingSurveys.length > 0 && (
+              <div className="mt-4 text-center text-gray-600">
+                {remainingSurveys.length} more{" "}
+                {remainingSurveys.length === 1 ? "survey" : "surveys"} to
+                complete
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       <footer className="py-6 text-center text-gray-500 text-sm">
-        © {new Date().getFullYear()} Your Survey Platform
+        © {new Date().getFullYear()} AskAround Survey Platform
       </footer>
     </div>
   );

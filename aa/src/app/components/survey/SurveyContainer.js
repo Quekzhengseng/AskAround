@@ -4,16 +4,31 @@ import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import QuestionCard from "./QuestionCard";
 import ProgressBar from "./ProgressBar";
-import { sampleSurvey } from "@/app/lib/dummyData";
+import { UserAPI } from "../../utils/surveyAPI";
 
-const SurveyContainer = ({ survey }) => {
+const SurveyContainer = ({ survey, userId, onComplete }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [achievementCount, setAchievementCount] = useState(0);
   const [showAchievement, setShowAchievement] = useState(false);
-  const [addedQuestions, setAddedQuestions] = useState([]);
   const [showAddNotification, setShowAddNotification] = useState(false);
-  const [addedQuestionIds, setAddedQuestionIds] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [surveyCompleted, setSurveyCompleted] = useState(false);
+
+  // Make sure we have questions
+  if (!survey || !survey.questions || survey.questions.length === 0) {
+    return (
+      <div className="w-full max-w-4xl mx-auto px-4 py-8 @container rounded-xl">
+        <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+          <h3 className="text-yellow-800 font-medium">Survey Unavailable</h3>
+          <p className="text-yellow-700">
+            This survey has no questions or is not properly configured.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const currentQuestion = survey.questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === survey.questions.length - 1;
@@ -21,17 +36,14 @@ const SurveyContainer = ({ survey }) => {
   // Check if current question has an answer
   const hasAnswer = Boolean(answers[currentQuestion.id]);
 
-  // Check if current question has already been added
-  const isAlreadyAdded = Boolean(addedQuestionIds[currentQuestion.id]);
+  const handleNext = async () => {
+    // Save the current answer to the API
+    if (hasAnswer && currentQuestion.addable) {
+      await saveCurrentAnswer();
+    }
 
-  const handleNext = () => {
     if (isLastQuestion) {
-      // Increment achievement count when survey is completed
-      setAchievementCount((prev) => prev + 1);
-      setShowAchievement(true);
-
-      // Reset to first question
-      setCurrentQuestionIndex(0);
+      await submitSurvey();
     } else {
       setCurrentQuestionIndex((prev) => prev + 1);
     }
@@ -50,54 +62,64 @@ const SurveyContainer = ({ survey }) => {
     }));
   };
 
-  const ShowAddable = ({ condition, question, answer, questionId }) => {
-    if (condition) {
-      // Determine button state based on whether question has been answered and added
-      const isDisabled = !answer || isAlreadyAdded;
+  const saveCurrentAnswer = async () => {
+    // Only save if we have an answer and a user ID
+    if (!answers[currentQuestion.id] || !userId) return;
 
-      let buttonText = "Answer Question to Add";
-      if (answer && isAlreadyAdded) {
-        buttonText = "Question Already Added";
-      } else if (answer) {
-        buttonText = "Add Question";
-      }
-
-      return (
-        <button
-          onClick={() => {
-            handleAdd(question, answer, questionId);
-          }}
-          disabled={isDisabled}
-          className={`mx-auto px-4 py-2 rounded-lg transition-all duration-300 flex justify-center items-center ${
-            answer && !isAlreadyAdded
-              ? "bg-green-500 hover:bg-green-600 text-white cursor-pointer"
-              : isAlreadyAdded
-              ? "bg-blue-100 text-blue-500 cursor-not-allowed"
-              : "bg-gray-200 text-gray-400 cursor-not-allowed"
-          }`}
-        >
-          {buttonText}
-        </button>
+    try {
+      // Save the answer for this specific question to the API
+      await UserAPI.addQuestionResponse(
+        userId,
+        currentQuestion["question"],
+        answers[currentQuestion.id]
       );
-    } else {
-      return null;
+      // No need to show notification for regular answer saving
+    } catch (err) {
+      console.error("Error saving answer:", err);
+      // We don't stop the flow even if saving fails, but we log it
     }
   };
 
-  const handleAdd = (question, answer, questionId) => {
-    setAddedQuestions([...addedQuestions, { question, answer, questionId }]);
-    // Mark this question as added
-    setAddedQuestionIds((prev) => ({
-      ...prev,
-      [questionId]: true,
-    }));
-    setShowAddNotification(true);
+  const submitSurvey = async () => {
+    if (!userId) {
+      console.error("Cannot submit survey: No user ID provided");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Save final answer if needed
+      if (hasAnswer && currentQuestion.addable) {
+        await saveCurrentAnswer();
+      }
+
+      // Mark the survey as completed in the user's profile
+      await UserAPI.moveToAnsweredSurveys(userId, survey.id);
+
+      // Show achievement animation
+      setAchievementCount((prev) => prev + 1);
+      setShowAchievement(true);
+
+      // Mark survey as completed
+      setSurveyCompleted(true);
+
+      // Call onComplete callback after a delay to show achievement
+      setTimeout(() => {
+        if (onComplete) onComplete();
+      }, 2500);
+    } catch (err) {
+      console.error("Error submitting survey:", err);
+      setError("There was a problem submitting your survey. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  useEffect(() => {
-    localStorage.setItem("questions", JSON.stringify(addedQuestions));
-    console.log(addedQuestions);
-  }, [addedQuestions]);
+  // useEffect(() => {
+  //   localStorage.setItem("questions", JSON.stringify(addedQuestions));
+  // }, [addedQuestions]);
 
   // Hide achievement animation after it completes
   useEffect(() => {
@@ -122,30 +144,31 @@ const SurveyContainer = ({ survey }) => {
   }, [showAddNotification]);
 
   // Load previously saved questions from localStorage on mount
-  useEffect(() => {
-    try {
-      const savedQuestions = localStorage.getItem("questions");
-      if (savedQuestions) {
-        const parsedQuestions = JSON.parse(savedQuestions);
-        setAddedQuestions(parsedQuestions);
+  // useEffect(() => {
+  //   try {
+  //     const savedQuestions = localStorage.getItem("questions");
+  //     if (savedQuestions) {
+  //       const parsedQuestions = JSON.parse(savedQuestions);
+  //       setAddedQuestions(parsedQuestions);
 
-        // Build an object of added question IDs for tracking
-        const addedIds = {};
-        parsedQuestions.forEach((item) => {
-          if (item.questionId) {
-            addedIds[item.questionId] = true;
-          }
-        });
-        setAddedQuestionIds(addedIds);
-      }
-    } catch (error) {
-      console.error("Failed to load questions from localStorage:", error);
-    }
-  }, []);
+  //       // Build an object of added question IDs for tracking
+  //       const addedIds = {};
+  //       parsedQuestions.forEach((item) => {
+  //         if (item.questionId) {
+  //           addedIds[item.questionId] = true;
+  //         }
+  //       });
+  //       setAddedQuestionIds(addedIds);
+  //     }
+  //   } catch (error) {
+  //     console.error("Failed to load questions from localStorage:", error);
+  //   }
+  // }, []);
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 @container rounded-xl relative">
-      {survey.title}
+      <h2 className="text-2xl font-bold mb-4">{survey.title}</h2>
+
       <div className="mb-8 flex items-center">
         <ProgressBar
           currentQuestion={currentQuestionIndex + 1}
@@ -168,6 +191,12 @@ const SurveyContainer = ({ survey }) => {
         </AnimatePresence>
       </div>
 
+      {error && (
+        <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-3 rounded">
+          <p className="text-red-700">{error}</p>
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
         <QuestionCard
           key={currentQuestion.id}
@@ -177,18 +206,12 @@ const SurveyContainer = ({ survey }) => {
         />
       </AnimatePresence>
 
-      <ShowAddable
-        condition={currentQuestion.addable}
-        question={currentQuestion.question}
-        answer={answers[currentQuestion.id] || ""}
-        questionId={currentQuestion.id}
-      />
-
       <div className="flex justify-between mt-6">
         {currentQuestionIndex > 0 && (
           <button
             onClick={handlePrevious}
             className="text-gray-500 hover:text-gray-700 flex items-center gap-2 transition-transform hover:-translate-x-1"
+            disabled={isSubmitting}
           >
             <svg
               className="w-4 h-4"
@@ -209,22 +232,51 @@ const SurveyContainer = ({ survey }) => {
 
         <button
           onClick={handleNext}
+          disabled={isSubmitting}
           className="ml-auto text-gray-500 hover:text-gray-700 flex items-center gap-2 transition-transform hover:translate-x-1"
         >
-          Next question
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
+          {isSubmitting ? (
+            <>
+              <span className="mr-2">Submitting...</span>
+              <svg
+                className="animate-spin h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            </>
+          ) : (
+            <>
+              {isLastQuestion ? "Submit Survey" : "Next question"}
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </>
+          )}
         </button>
       </div>
 

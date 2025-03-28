@@ -17,7 +17,7 @@ const QUESTION_TYPES = {
 const QuestionCard = ({ question, answer, setAnswer, onNext }) => {
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && question.type !== QUESTION_TYPES.LONG_TEXT) {
-      onNext();
+      onNext?.();
     }
   };
 
@@ -62,12 +62,70 @@ const QuestionCard = ({ question, answer, setAnswer, onNext }) => {
                 onClick={() => {
                   setAnswer(option);
                   // Auto advance after selection
-                  setTimeout(onNext, 500);
+                  if (onNext) setTimeout(onNext, 500);
                 }}
               >
                 {option}
               </div>
             ))}
+          </div>
+        );
+
+      case QUESTION_TYPES.MULTIPLE_CHOICE:
+        // Initialize answer as array if not already
+        const selectedOptions = Array.isArray(answer) ? answer : [];
+
+        return (
+          <div className="space-y-3 mt-4 @container">
+            {question.options.map((option, index) => {
+              const isSelected = selectedOptions.includes(option);
+
+              return (
+                <div
+                  key={index}
+                  className={`p-4 border-2 rounded-lg cursor-pointer transition-colors flex items-center ${
+                    isSelected
+                      ? "border-blue-500 bg-blue-50 text-blue-900"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                  onClick={() => {
+                    // Toggle selection
+                    if (isSelected) {
+                      setAnswer(
+                        selectedOptions.filter((item) => item !== option)
+                      );
+                    } else {
+                      setAnswer([...selectedOptions, option]);
+                    }
+                  }}
+                >
+                  <div
+                    className={`w-5 h-5 mr-3 flex-shrink-0 border-2 rounded ${
+                      isSelected
+                        ? "bg-blue-500 border-blue-500 flex items-center justify-center"
+                        : "border-gray-300"
+                    }`}
+                  >
+                    {isSelected && (
+                      <svg
+                        className="w-3 h-3 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="3"
+                          d="M5 13l4 4L19 7"
+                        ></path>
+                      </svg>
+                    )}
+                  </div>
+                  <span>{option}</span>
+                </div>
+              );
+            })}
           </div>
         );
 
@@ -85,7 +143,7 @@ const QuestionCard = ({ question, answer, setAnswer, onNext }) => {
                 onClick={() => {
                   setAnswer(i + 1);
                   // Auto advance after selection
-                  setTimeout(onNext, 500);
+                  if (onNext) setTimeout(onNext, 500);
                 }}
               >
                 {i + 1}
@@ -105,7 +163,7 @@ const QuestionCard = ({ question, answer, setAnswer, onNext }) => {
               }`}
               onClick={() => {
                 setAnswer(true);
-                setTimeout(onNext, 500);
+                if (onNext) setTimeout(onNext, 500);
               }}
             >
               Yes
@@ -118,7 +176,7 @@ const QuestionCard = ({ question, answer, setAnswer, onNext }) => {
               }`}
               onClick={() => {
                 setAnswer(false);
-                setTimeout(onNext, 500);
+                if (onNext) setTimeout(onNext, 500);
               }}
             >
               No
@@ -126,8 +184,21 @@ const QuestionCard = ({ question, answer, setAnswer, onNext }) => {
           </div>
         );
 
+      case QUESTION_TYPES.DATE:
+        return (
+          <div className="mt-4">
+            <input
+              type="date"
+              className="w-full p-4 text-xl border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-0 bg-white"
+              value={answer || ""}
+              onChange={(e) => setAnswer(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+          </div>
+        );
+
       default:
-        return <div>Unsupported question type</div>;
+        return <div>Unsupported question type: {question.type}</div>;
     }
   };
 
