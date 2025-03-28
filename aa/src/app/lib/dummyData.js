@@ -20,17 +20,20 @@ export const sampleSurvey = {
       question: "What's your name?",
       placeholder: "Type your answer here...",
       required: true,
+      addable: false,
     },
     {
       id: "q2",
       type: QUESTION_TYPES.YES_NO,
       question: "Are you a student?",
       required: true,
+      addable: true,
     },
     {
       id: "q3",
       type: QUESTION_TYPES.SINGLE_CHOICE,
-      question: "Which Toliet in Singapore Management University do you use the most?",
+      question:
+        "Which Toliet in Singapore Management University do you use the most?",
       options: [
         "School Of Computing",
         "School Of Economics",
@@ -39,13 +42,16 @@ export const sampleSurvey = {
         "Other",
       ],
       required: true,
+      addable: true,
     },
     {
       id: "q4",
       type: QUESTION_TYPES.RATING,
-      question: "How would you rate the overall toliet experience in Singapore Management University?",
+      question:
+        "How would you rate the overall toliet experience in Singapore Management University?",
       scale: 5,
       required: true,
+      addable: false,
     },
     {
       id: "q5",
@@ -53,12 +59,15 @@ export const sampleSurvey = {
       question: "Do you have any suggestions for toliet improvement?",
       placeholder: "Share your thoughts here...",
       required: false,
+      addable: false,
     },
     {
       id: "q6",
       type: QUESTION_TYPES.YES_NO,
-      question: "Do you think the toliets in Singapore Managemnent University need refurbishment?",
+      question:
+        "Do you think the toliets in Singapore Managemnent University need refurbishment?",
       required: true,
+      addable: false,
     },
   ],
 };

@@ -143,23 +143,6 @@ const QuestionCard = ({ question, answer, setAnswer, onNext }) => {
         {question.question}
       </h2>
       {renderQuestionInput()}
-
-      <div className="mt-8 flex justify-end">
-        <button
-          onClick={onNext}
-          className={`px-6 py-3 rounded-lg font-medium transition-colors text-white ${
-            answer
-              ? "bg-blue-700 hover:bg-blue-800"
-              : "bg-blue-500 hover:bg-blue-600"
-          } not-hover:shadow-sm active:translate-y-1`}
-        >
-          {question.type === QUESTION_TYPES.SINGLE_CHOICE ||
-          question.type === QUESTION_TYPES.RATING ||
-          question.type === QUESTION_TYPES.YES_NO
-            ? "Continue"
-            : "Next"}
-        </button>
-      </div>
     </motion.div>
   );
 };
