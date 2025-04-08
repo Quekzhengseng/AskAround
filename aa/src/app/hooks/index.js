@@ -164,8 +164,43 @@ export const useSurveys = () => {
   };
 };
 
+/**
+ * Custom hook to update user points when a question is answered
+ * @returns {Function} - Function to call for changing user points
+ */
+export const useChangeUserPoints = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [updatedPoints, setUpdatedPoints] = useState(null);
+
+  const changeUserPoints = useCallback(async (userId, surveyId, questionId) => {
+    if (!userId || !surveyId || !questionId) return;
+
+    try {
+      setLoading(true);
+      const data = await UserAPI.changePoints(userId, surveyId, questionId);
+      setUpdatedPoints(data.points);
+      return data;
+    } catch (err) {
+      console.error("Error updating user points:", err);
+      setError(err.message || "Failed to update points");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return {
+    changeUserPoints,
+    updatedPoints,
+    loading,
+    error,
+  };
+};
+
 export default {
   useSurveys,
   useUserSurveys,
   useUserToBeAnsweredSurveys,
+  useChangeUserPoints,
 };

@@ -5,6 +5,7 @@ const API_BASE_URL = "http://localhost:5001";
  * Helper function to handle API requests
  */
 async function apiRequest(endpoint, method = "GET", data = null) {
+  console.log("Calling: " + endpoint);
   const url = `${API_BASE_URL}${endpoint}`;
   const options = {
     method,
@@ -65,6 +66,16 @@ export const SurveyAPI = {
  * User-related API functions
  */
 export const UserAPI = {
+  /**
+   * Change points of the User
+   */
+  changePoints: async (userId, surveyId, questionId) => {
+    const response = await apiRequest(`/user/next/${userId}`, "PUT", {
+      survey_id: surveyId,
+      question_id: questionId,
+    });
+    return response;
+  },
   /**
    * Get all user data including answered questions and surveys
    */

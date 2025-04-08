@@ -25,12 +25,14 @@ sample_survey = [{
             "question": "What's your name?",
             "placeholder": "Type your answer here...",
             "addable": True,
+            "points": 5
         },
         {
             "id": "q2",
             "type": QUESTION_TYPES["YES_NO"],
             "question": "Are you a student?",
             "addable": False,
+            "points": 5
         },
         {
             "id": "q3",
@@ -44,6 +46,7 @@ sample_survey = [{
                 "Other",
             ],
             "addable": True,
+            "points": 5
         },
         {
             "id": "q4",
@@ -51,6 +54,7 @@ sample_survey = [{
             "question": "How would you rate the overall toilet experience in Singapore Management University?",
             "scale": 5,
             "addable": True,
+            "points": 5
         },
         {
             "id": "q5",
@@ -58,12 +62,14 @@ sample_survey = [{
             "question": "Do you have any suggestions for toilet improvement?",
             "placeholder": "Share your thoughts here...",
             "addable": True,
+            "points": 5
         },
         {
             "id": "q6",
             "type": QUESTION_TYPES["YES_NO"],
             "question": "Do you think the toilets in Singapore Management University need refurbishment?",
             "addable": False,
+            "points": 5
         },
     ],
 }, 
@@ -78,6 +84,7 @@ sample_survey = [{
             "question": "What's your student ID?",
             "placeholder": "Enter your student ID...",
             "addable": False,
+            "points": 5
         },
         {
             "id": "q2",
@@ -93,6 +100,7 @@ sample_survey = [{
                 "Good lighting"
             ],
             "addable": True,
+            "points": 5
         },
         {
             "id": "q3",
@@ -105,6 +113,7 @@ sample_survey = [{
                 "Late night (After 10pm)"
             ],
             "addable": False,
+            "points": 5
         },
         {
             "id": "q4",
@@ -112,12 +121,14 @@ sample_survey = [{
             "question": "How would you rate the cleanliness of the toilets?",
             "scale": 5,
             "addable": True,
+            "points": 5
         },
         {
             "id": "q5",
             "type": QUESTION_TYPES["YES_NO"],
             "question": "Have you ever found an SMU toilet out of service when you needed it?",
             "addable": False,
+            "points": 5
         },
         {
             "id": "q6",
@@ -130,12 +141,14 @@ sample_survey = [{
                 "Once a week or less"
             ],
             "addable": False,
+            "points": 5
         },
         {
             "id": "q7",
             "type": QUESTION_TYPES["YES_NO"],
             "question": "Do you think there are enough toilets in SMU?",
             "addable": False,
+            "points": 5
         },
         {
             "id": "q8",
@@ -147,6 +160,7 @@ sample_survey = [{
                 "Higher floors"
             ],
             "addable": True,
+            "points": 5
         },
         {
             "id": "q9",
@@ -154,6 +168,7 @@ sample_survey = [{
             "question": "How would you rate the privacy of the toilet cubicles?",
             "scale": 5,
             "addable": True,
+            "points": 5
         },
         {
             "id": "q10",
@@ -161,6 +176,7 @@ sample_survey = [{
             "question": "What's the biggest issue you've encountered in SMU toilets?",
             "placeholder": "Please describe briefly...",
             "addable": True,
+            "points": 5
         },
         {
             "id": "q11",
@@ -177,18 +193,21 @@ sample_survey = [{
                 "Better hand soap"
             ],
             "addable": True,
+            "points": 5
         },
         {
             "id": "q12",
             "type": QUESTION_TYPES["DATE"],
             "question": "When did you last notice any maintenance issues in an SMU toilet?",
             "addable": True,
+            "points": 5
         },
         {
             "id": "q13",
             "type": QUESTION_TYPES["YES_NO"],
             "question": "Are the hand dryers in SMU toilets effective?",
             "addable": False,
+            "points": 5
         },
         {
             "id": "q14",
@@ -196,6 +215,7 @@ sample_survey = [{
             "question": "Please provide your email if you'd like to participate in future facility improvement surveys",
             "placeholder": "your.email@example.com",
             "addable": False,
+            "points": 5
         },
         {
             "id": "q15",
@@ -203,6 +223,7 @@ sample_survey = [{
             "question": "If you could redesign the SMU toilets, what changes would you make?",
             "placeholder": "Share your design ideas here...",
             "addable": True,
+            "points": 5
         }
     ],
 }]
@@ -210,6 +231,7 @@ sample_survey = [{
 user_data = [{
     "id" : "user_data-001",
     "Surveys" : [],
+    "points" : 0
 }]
 
 # Upload data to Firestore
@@ -220,7 +242,7 @@ def upload_survey(db):
         print(f"Survey {survey['id']} uploaded successfully!")
     for user in user_data:
         doc_ref = db.collection("users").document(user["id"])
-        doc_ref.set(user["Surveys"])
+        doc_ref.set(user)
         print(f"Survey {user['id']} uploaded successfully!")
 
 def clear_firestore(db):

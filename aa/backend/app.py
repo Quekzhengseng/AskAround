@@ -306,6 +306,74 @@ def getUserToBeAnsweredSurveys(id):
             'success': False,
             'error': str(e)
         }), 500
+    
+
+@app.route('/user/next/<id>', methods=['PUT'])
+def changePoints(id):
+    """Endpoint to change the points of the user based on the question answered"""
+    try:
+        request_data = request.get_json()
+
+        if not request_data or 'survey_id' not in request_data:
+            return jsonify({
+                'success': False,
+                'error': 'Missing required field: survey_id or question_id'
+            }), 400
+
+        survey_id = request_data["survey_id"]
+        question_id = request_data["question_id"]
+
+        # Get the survey document
+        survey_ref = db.collection('surveys').document(survey_id)
+        survey_doc = survey_ref.get()
+
+        survey_data = survey_doc.to_dict()
+
+        if not survey_doc.exists:
+            return jsonify({
+                'success': False,
+                'error': f"Survey with id {survey_id} not found."
+            }), 404
+        
+        points = None
+        
+        for question in survey_data.get('questions', []):
+            if question.get('id') == question_id:
+                points = question.get('points')
+                break
+
+        user_ref = db.collection('users').document(id)
+        user_doc = user_ref.get()
+
+        if not user_doc.exists:
+            # If user doesn't exist, create a new document
+            return jsonify({
+                'success': False,
+                'error': f"User with id {id} not found."
+            }), 404
+        else:
+            # Get the current user data
+            user_data = user_doc.to_dict()
+
+            currentPoints = user_data.get("points")
+
+            points += currentPoints
+            
+            # Add to answered_surveys array
+            user_ref.update({
+                'points': points
+            })
+
+        return jsonify({
+            'success': True,
+            'message': f"User {id} updated with points",
+            'points' : points
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 @app.route('/health', methods=['GET'])

@@ -15,6 +15,8 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [surveyCompleted, setSurveyCompleted] = useState(false);
+  const [points, setPoints] = useState(0);
+  const [showPointsAnimation, setShowPointsAnimation] = useState(false);
 
   // Make sure we have questions
   if (!survey || !survey.questions || survey.questions.length === 0) {
@@ -42,12 +44,40 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
       await saveCurrentAnswer();
     }
 
+    // Show the points animation immediately
+    if (currentQuestion.points) {
+      setShowPointsAnimation(true);
+    }
+
+    // Add points after answering a question
+    await addPoints();
+
     if (isLastQuestion) {
       await submitSurvey();
     } else {
       setCurrentQuestionIndex((prev) => prev + 1);
     }
   };
+
+  const addPoints = async () => {
+    try {
+      const response = await UserAPI.changePoints(
+        userId,
+        survey.id,
+        currentQuestion.id
+      );
+
+      if (response && typeof response.points === "number") {
+        setPoints(response.points);
+      }
+    } catch (err) {
+      console.error("Error changing points:", err);
+    }
+  };
+
+  useEffect(() => {
+    console.log("Updated points:", points);
+  }, [points]);
 
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
@@ -117,10 +147,6 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
     }
   };
 
-  // useEffect(() => {
-  //   localStorage.setItem("questions", JSON.stringify(addedQuestions));
-  // }, [addedQuestions]);
-
   // Hide achievement animation after it completes
   useEffect(() => {
     if (showAchievement) {
@@ -131,6 +157,17 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
       return () => clearTimeout(timer);
     }
   }, [showAchievement]);
+
+  // Hide points animation after it completes
+  useEffect(() => {
+    if (showPointsAnimation) {
+      const timer = setTimeout(() => {
+        setShowPointsAnimation(false);
+      }, 1500); // Animation duration
+
+      return () => clearTimeout(timer);
+    }
+  }, [showPointsAnimation]);
 
   // Hide add notification after it completes
   useEffect(() => {
@@ -143,30 +180,27 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
     }
   }, [showAddNotification]);
 
-  // Load previously saved questions from localStorage on mount
-  // useEffect(() => {
-  //   try {
-  //     const savedQuestions = localStorage.getItem("questions");
-  //     if (savedQuestions) {
-  //       const parsedQuestions = JSON.parse(savedQuestions);
-  //       setAddedQuestions(parsedQuestions);
-
-  //       // Build an object of added question IDs for tracking
-  //       const addedIds = {};
-  //       parsedQuestions.forEach((item) => {
-  //         if (item.questionId) {
-  //           addedIds[item.questionId] = true;
-  //         }
-  //       });
-  //       setAddedQuestionIds(addedIds);
-  //     }
-  //   } catch (error) {
-  //     console.error("Failed to load questions from localStorage:", error);
-  //   }
-  // }, []);
-
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 @container rounded-xl relative">
+      {/* Points counter with animation */}
+      <div className="absolute top-4 right-4 bg-green-100 text-green-700 font-semibold px-4 py-2 rounded-lg shadow">
+        <span>Points: {points}</span>
+
+        {/* Points animation - positioned absolutely so it doesn't affect layout */}
+        <AnimatePresence>
+          {showPointsAnimation && currentQuestion.points > 0 && (
+            <motion.div
+              className="absolute top-0 left-full ml-2 text-green-600 font-bold text-lg"
+              initial={{ opacity: 0, y: 0, scale: 0.8 }}
+              animate={{ opacity: 1, y: -15, scale: 1.2 }}
+              exit={{ opacity: 0, y: -30, scale: 1 }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
+            >
+              +{currentQuestion.points}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
       <h2 className="text-2xl font-bold mb-4">{survey.title}</h2>
 
       <div className="mb-8 flex items-center">
