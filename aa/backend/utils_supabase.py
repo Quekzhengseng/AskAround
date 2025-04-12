@@ -1,5 +1,4 @@
-import firebase_admin
-from firebase_admin import firestore
+# utils_supabase.py
 
 # Define question types
 QUESTION_TYPES = {
@@ -229,26 +228,40 @@ sample_survey = [{
 }]
 
 user_data = [{
-    "id" : "user_data-001",
-    "Surveys" : [],
-    "points" : 0
+    "id": "user_data-001",
+    "Surveys": [],
+    "points": 0,
+    "saved_questions": [],
+    "answered_surveys": [],
+    "to_be_answered_surveys": []
 }]
 
-# Upload data to Firestore
-def upload_survey(db):
+# Upload data to Supabase
+def upload_survey(supabase):
+    """Upload sample survey data to Supabase"""
     for survey in sample_survey:
-        doc_ref = db.collection("surveys").document(survey["id"])
-        doc_ref.set(survey)
-        print(f"Survey {survey['id']} uploaded successfully!")
+        result = supabase.table("surveys").upsert(survey).execute()
+        if hasattr(result, 'error') and result.error:
+            print(f"Error uploading survey {survey['id']}: {result.error}")
+        else:
+            print(f"Survey {survey['id']} uploaded successfully!")
+    
     for user in user_data:
-        doc_ref = db.collection("users").document(user["id"])
-        doc_ref.set(user)
-        print(f"Survey {user['id']} uploaded successfully!")
+        result = supabase.table("users").upsert(user).execute()
+        if hasattr(result, 'error') and result.error:
+            print(f"Error uploading user {user['id']}: {result.error}")
+        else:
+            print(f"User {user['id']} uploaded successfully!")
 
-def clear_firestore(db):
-    collections = db.collections()
-    for collection in collections:
-        docs = collection.stream()
-        for doc in docs:
-            doc.reference.delete()
-    print("Firestore cleared successfully!")
+def clear_supabase(supabase):
+    """Clear all data from Supabase tables"""
+    try:
+        # Clear surveys table
+        supabase.table("surveys").delete().neq("id", "dummy-id-for-safety").execute()
+        
+        # Clear users table
+        supabase.table("users").delete().neq("id", "dummy-id-for-safety").execute()
+        
+        print("Supabase tables cleared successfully!")
+    except Exception as e:
+        print(f"Error clearing Supabase tables: {e}")
