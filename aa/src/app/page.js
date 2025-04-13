@@ -3,23 +3,42 @@
 import React, { useState, useEffect } from "react";
 import SurveyContainer from "./components/survey/SurveyContainer";
 import Link from "next/link";
-import { useUserToBeAnsweredSurveys } from "./hooks";
+import { SurveyAPI } from "./utils/surveyAPI";
 
 export default function Home() {
   // You can replace this with actual user ID from authentication
   const userId = "user_data-001";
 
-  // Fetch surveys using our custom hook
-  const {
-    surveys: toBeAnsweredSurveys,
-    loading,
-    error,
-    refetch,
-  } = useUserToBeAnsweredSurveys(userId);
+  // State for surveys and loading status
+  const [toBeAnsweredSurveys, setToBeAnsweredSurveys] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // State to track the currently displayed survey
   const [currentSurvey, setCurrentSurvey] = useState(null);
   const [remainingSurveys, setRemainingSurveys] = useState([]);
+
+  // Function to fetch surveys
+  const fetchSurveys = async () => {
+    try {
+      setLoading(true);
+      const data = await SurveyAPI.getUserToBeAnsweredSurveys(userId);
+      console.log("To-be-answered surveys:", data);
+      setToBeAnsweredSurveys(data);
+      return data;
+    } catch (err) {
+      console.error("Error fetching to-be-answered surveys:", err);
+      setError(err.message || "Failed to fetch surveys");
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch of surveys
+  useEffect(() => {
+    fetchSurveys();
+  }, []);
 
   // Set the first to-be-answered survey as current when data loads
   useEffect(() => {
@@ -38,11 +57,11 @@ export default function Home() {
       setRemainingSurveys((prev) => prev.slice(1));
 
       // Refetch in the background without waiting
-      refetch();
+      fetchSurveys();
     } else {
       setCurrentSurvey(null);
       // Still refetch to ensure we don't miss any new surveys
-      refetch();
+      fetchSurveys();
     }
   };
 
@@ -55,12 +74,12 @@ export default function Home() {
       // prefetch the next batch to have them ready
       if (remainingSurveys.length < 3 && remainingSurveys.length > 0) {
         // Prefetch in the background
-        refetch();
+        fetchSurveys();
       }
     };
 
     prefetchNextSurveys();
-  }, [remainingSurveys.length, refetch]);
+  }, [remainingSurveys.length]);
 
   return (
     <div className="min-h-screen bg-linear-135/oklch from-white via-purple-50 to-blue-100/40">

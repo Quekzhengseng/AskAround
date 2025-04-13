@@ -1,20 +1,52 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useUserSurveys } from "../hooks";
+import { UserAPI } from "../utils/surveyAPI";
 
 export default function Profile() {
   const userId = "user_data-001";
 
-  // Use the custom hook to get user survey data
-  const { loading, error, savedSurveys } = useUserSurveys(userId);
+  // State management
+  const [savedSurveys, setSavedSurveys] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  console.log("Saved surveys:", savedSurveys);
+  // Fetch saved questions using the API directly
+  useEffect(() => {
+    async function fetchSavedQuestions() {
+      try {
+        setLoading(true);
+        const data = await UserAPI.getSavedQuestions(userId);
+        console.log("Saved surveys:", data);
+        setSavedSurveys(data);
+      } catch (err) {
+        console.error("Error fetching saved questions:", err);
+        setError(err.message || "Failed to fetch saved questions");
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  // Function to delete a saved survey (if needed)
-  const deleteSavedSurvey = (index) => {
-    // This would need to call an API to remove the saved survey
+    fetchSavedQuestions();
+  }, [userId]);
+
+  // Function to delete a saved survey (if API endpoint exists)
+  const deleteSavedSurvey = async (index) => {
+    // This would need a proper API endpoint to implement
     console.log("Delete survey at index:", index);
+
+    /* Example implementation if you add this endpoint:
+    try {
+      await UserAPI.deleteSavedQuestion(userId, savedSurveys[index].id);
+      // Update local state after successful deletion
+      setSavedSurveys(prevSurveys => 
+        prevSurveys.filter((_, i) => i !== index)
+      );
+    } catch (err) {
+      console.error("Error deleting saved question:", err);
+      setError("Failed to delete the question. Please try again.");
+    }
+    */
   };
 
   return (

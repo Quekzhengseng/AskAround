@@ -17,6 +17,30 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
   const [surveyCompleted, setSurveyCompleted] = useState(false);
   const [points, setPoints] = useState(0);
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
+  const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
+
+  // Fetch initial user data to get starting points
+  useEffect(() => {
+    async function initializeUserData() {
+      if (!userId) return;
+
+      try {
+        setIsLoadingInitialData(true);
+        const userData = await UserAPI.getAnsweredQuestions(userId);
+
+        if (userData && typeof userData.points === "number") {
+          setPoints(userData.points);
+        }
+      } catch (err) {
+        console.error("Error fetching initial user data:", err);
+        // Don't set error state as this isn't critical for the survey to function
+      } finally {
+        setIsLoadingInitialData(false);
+      }
+    }
+
+    initializeUserData();
+  }, [userId]);
 
   // Make sure we have questions
   if (!survey || !survey.questions || survey.questions.length === 0) {
@@ -184,7 +208,33 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
     <div className="w-full max-w-4xl mx-auto px-4 py-8 @container rounded-xl relative">
       {/* Points counter with animation */}
       <div className="absolute top-4 right-4 bg-green-100 text-green-700 font-semibold px-4 py-2 rounded-lg shadow">
-        <span>Points: {points}</span>
+        {isLoadingInitialData ? (
+          <span className="flex items-center">
+            Loading points...
+            <svg
+              className="animate-spin ml-2 h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          </span>
+        ) : (
+          <span>Points: {points}</span>
+        )}
 
         {/* Points animation - positioned absolutely so it doesn't affect layout */}
         <AnimatePresence>
