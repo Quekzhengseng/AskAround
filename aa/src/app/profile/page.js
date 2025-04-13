@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { UserAPI } from "../utils/surveyAPI";
+import { UserAPI } from "../utils/SurveyAPI";
 
 export default function Profile() {
   const userId = "user_data-001";

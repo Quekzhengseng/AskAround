@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import QuestionCard from "./QuestionCard";
 import ProgressBar from "./ProgressBar";
-import { UserAPI } from "../../utils/surveyAPI";
+import { UserAPI } from "../../utils/SurveyAPI";
 
 const SurveyContainer = ({ survey, userId, onComplete }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);

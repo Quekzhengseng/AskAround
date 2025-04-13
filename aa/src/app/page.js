@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import SurveyContainer from "./components/survey/SurveyContainer";
 import Link from "next/link";
-import { SurveyAPI } from "./utils/surveyAPI";
+import { SurveyAPI } from "./utils/SurveyAPI";
 
 export default function Home() {
   // You can replace this with actual user ID from authentication
