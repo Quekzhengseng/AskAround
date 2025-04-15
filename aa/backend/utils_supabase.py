@@ -229,12 +229,27 @@ sample_survey = [{
 
 user_data = [{
     "id": "user_data-001",
+    "username" : "user-001",
     "Surveys": [],
     "points": 0,
     "saved_questions": [],
     "answered_surveys": [],
-    "to_be_answered_surveys": []
+    "to_be_answered_surveys": [],
+    "vouchers": [],
+    "used_vouchers": []
 }]
+
+voucher_data = [{
+    "id" : "voucher-001",
+    "name" : "McDonald $5",
+    "points" : 5,
+},
+{
+    "id" : "voucher-002",
+    "name" : "Burger King $5",
+    "points" : 5,
+}
+]
 
 # Upload data to Supabase
 def upload_survey(supabase):
@@ -253,6 +268,13 @@ def upload_survey(supabase):
         else:
             print(f"User {user['id']} uploaded successfully!")
 
+    for voucher in voucher_data:
+        result = supabase.table("vouchers").upsert(voucher).execute()
+        if hasattr(result, 'error') and result.error:
+            print(f"Voucher {voucher['id']} upload failed: {result.error}")
+        else:
+            print(f"Voucher {voucher['id']} uploaded successfully!")
+
 def clear_supabase(supabase):
     """Clear all data from Supabase tables"""
     try:
@@ -261,6 +283,9 @@ def clear_supabase(supabase):
         
         # Clear users table
         supabase.table("users").delete().neq("id", "dummy-id-for-safety").execute()
+
+        # Clear voucher table
+        supabase.table("vouchers").delete().neq("id", "dummy-id-for-safety").execute()
         
         print("Supabase tables cleared successfully!")
     except Exception as e:

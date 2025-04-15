@@ -26,7 +26,7 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
 
       try {
         setIsLoadingInitialData(true);
-        const userData = await UserAPI.getAnsweredQuestions(userId);
+        const userData = await UserAPI.getUserData(userId);
 
         if (userData && typeof userData.points === "number") {
           setPoints(userData.points);

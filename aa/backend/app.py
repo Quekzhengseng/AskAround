@@ -66,7 +66,6 @@ def get_all_surveys():
             'error': str(e)
         }), 500
 
-
 @app.route('/user/<id>', methods=['GET'])
 def get_specific_user_data(id):
     """Endpoint to retrieve the specific user's data"""
@@ -85,6 +84,38 @@ def get_specific_user_data(id):
         return jsonify({
             'success': True,
             'data': user_data
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+    
+@app.route('/user/<id>/<num>', methods=['DELETE'])
+def delete_specific_saved_question(id, num):
+    """Endpoint to delete a particular saved question"""
+    try:
+        response = supabase.table('users').select("*").eq('id', id).execute()
+        
+        if not response.data:
+            return jsonify({
+                'success': False,
+                'error': 'User not found'
+            }), 404
+
+        user_data = response.data[0]
+
+        index = int(num)
+
+        saved_questions = user_data.get("saved_questions", [])
+
+        del saved_questions[index]
+
+        response = supabase.table('users').update({'saved_questions': saved_questions}).eq('id', id).execute()
+        
+        return jsonify({
+            'success': True,
+            'data': saved_questions
         }), 200
     except Exception as e:
         return jsonify({
@@ -116,7 +147,6 @@ def get_saved_questions(id):
             'success': False,
             'error': str(e)
         }), 500
-
 
 @app.route('/user/add/<id>', methods=['PUT'])
 def add_to_responded(id):
@@ -383,6 +413,29 @@ def change_points(id):
             'error': str(e)
         }), 500
 
+#Voucher API
+
+@app.route('/voucher', methods=['GET'])
+def get_vouchers():
+    """Endpoint to retrieve voucher data"""
+    try:
+        response = supabase.table('vouchers').select("*").execute()
+        
+        if not response.data:
+            return jsonify({
+                'success': False,
+                'error': 'Vouchers not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'data': response.data
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 @app.route('/health', methods=['GET'])

@@ -99,7 +99,7 @@ export default function Home() {
           <div className="flex-1 flex justify-end">
             <Link
               href="/profile"
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-100 hover:bg-purple-200 transition-colors duration-300"
+              className="flex items-center justify-center w-10 h-10 mx-2 rounded-full bg-purple-100 hover:bg-purple-200 transition-colors duration-300"
               aria-label="Go to profile"
             >
               <svg
@@ -114,6 +114,28 @@ export default function Home() {
               >
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                 <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </Link>
+            <Link
+              href="/voucher"
+              className="flex items-center justify-center w-10 h-10 mx-2 rounded-full bg-purple-100 hover:bg-purple-200 transition-colors duration-300"
+              aria-label="Go to voucher"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-5 h-5 text-purple-700"
+              >
+                {/* Voucher outline with zigzag edge */}
+                <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z" />
+
+                {/* Zigzag/perforated line down the middle */}
+                <path d="M12 4v2m0 2v2m0 2v2m0 2v2m0 2v2" />
               </svg>
             </Link>
           </div>

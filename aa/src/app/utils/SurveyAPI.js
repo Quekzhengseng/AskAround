@@ -62,29 +62,6 @@ export const SurveyAPI = {
   },
 
   /**
-   * Get both user data and to-be-answered surveys in a single call
-   * This combines functionality from multiple hooks
-   */
-  getUserSurveyData: async (userId) => {
-    try {
-      // Run these requests in parallel for better performance
-      const [userDataResponse, surveysResponse] = await Promise.all([
-        UserAPI.getAnsweredQuestions(userId),
-        SurveyAPI.getUserToBeAnsweredSurveys(userId),
-      ]);
-
-      return {
-        userData: userDataResponse,
-        toBeAnsweredSurveys: surveysResponse,
-        savedQuestions: userDataResponse.saved_questions || [],
-      };
-    } catch (error) {
-      console.error("Error fetching combined user survey data:", error);
-      throw error;
-    }
-  },
-
-  /**
    * Complete a survey by marking it as answered and updating user data
    * @param {string} userId - The user ID
    * @param {string} surveyId - The survey ID
@@ -107,6 +84,14 @@ export const SurveyAPI = {
  */
 export const UserAPI = {
   /**
+   * Get user data
+   */
+  getUserData: async (userId) => {
+    const response = await apiRequest(`/user/${userId}`);
+    return response.data;
+  },
+
+  /**
    * Change points of the User
    */
   changePoints: async (userId, surveyId, questionId) => {
@@ -118,18 +103,18 @@ export const UserAPI = {
   },
 
   /**
-   * Get all user data including answered questions and surveys
-   */
-  getAnsweredQuestions: async (userId) => {
-    const response = await apiRequest(`/user/${userId}`);
-    return response.data;
-  },
-
-  /**
    * Get all user data for saved questions
    */
   getSavedQuestions: async (userId) => {
     const response = await apiRequest(`/user/savedquestion/${userId}`);
+    return response.data;
+  },
+
+  /**
+   * Delete specific saved question per user
+   */
+  removeSavedQuestion: async (userId, index) => {
+    const response = await apiRequest(`/user/${userId}/${index}`, "DELETE");
     return response.data;
   },
 
@@ -194,26 +179,18 @@ export const UserAPI = {
       };
     }
   },
+};
 
+/**
+ * Voucher-related API functions
+ */
+export const VoucherAPI = {
   /**
-   * Get complete user profile including points, answered surveys, and saved questions
-   * @param {string} userId - The user ID
-   * @returns {Object} - Combined user profile data
+   * Get Voucher data
    */
-  getUserProfile: async (userId) => {
-    try {
-      const userData = await UserAPI.getAnsweredQuestions(userId);
-      return {
-        id: userId,
-        points: userData.points || 0,
-        answeredSurveys: userData.answered_surveys || [],
-        savedQuestions: userData.saved_questions || [],
-        toBeAnsweredSurveys: userData.to_be_answered_surveys || [],
-      };
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-      throw error;
-    }
+  getVoucher: async () => {
+    const response = await apiRequest(`/voucher`);
+    return response.data;
   },
 };
 
@@ -317,5 +294,6 @@ export const SurveyFlow = {
 export default {
   SurveyAPI,
   UserAPI,
+  VoucherAPI,
   SurveyFlow,
 };
