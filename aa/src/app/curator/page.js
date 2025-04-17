@@ -1,7 +1,6 @@
-
 "use client";
 
-import SurveyCreatorPage from "../components/survey/builder/SurveryCreaterPage";
+import SurveyCreatorPage from "../components/builder/SurveryCreaterPage";
 
 export default function CreateSurveyPage() {
   return <SurveyCreatorPage />;

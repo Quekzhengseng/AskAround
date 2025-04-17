@@ -1,9 +1,9 @@
 services:
   survey:
     build:
-      context: ./
+      context: ./survey_responder
       dockerfile: dockerfile.survey
-    image: AskAround/survey:1.0
+    image: AskAround/survey-responder:1.0
     volumes:
       - ./secrets:/secrets
     environment:
@@ -11,7 +11,7 @@ services:
       - SUPABASE_KEY=${SUPABASE_KEY}
       - PYTHONUNBUFFERED=1
     # restart: always
-    container_name: survey
+    container_name: survey-responder
     ports:
       - "5001:5001"
     networks:

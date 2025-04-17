@@ -80,7 +80,8 @@ const QuestionPreview = ({ question }) => {
         return (
           <div className="space-y-3 mt-4">
             {options.map((option, index) => {
-              const isSelected = Array.isArray(answer) && answer.includes(option);
+              const isSelected =
+                Array.isArray(answer) && answer.includes(option);
               return (
                 <div
                   key={index}
@@ -210,7 +211,7 @@ const QuestionPreview = ({ question }) => {
     >
       <div className="flex items-start justify-between mb-8">
         <h2 className="text-2xl font-bold">{question.question}</h2>
-        
+
         {/* If question is marked as required */}
         {question.validation?.required && (
           <span className="text-red-500 text-sm">* Required</span>

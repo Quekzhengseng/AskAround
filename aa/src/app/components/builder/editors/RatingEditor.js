@@ -10,7 +10,7 @@ const RatingEditor = ({ question, onChange }) => {
     if (!isNaN(scale) && scale >= 2 && scale <= 10) {
       onChange({ ...question, scale });
     } else if (value === "") {
-       onChange({ ...question, scale: undefined }); // Allow clearing
+      onChange({ ...question, scale: undefined }); // Allow clearing
     }
   };
 
@@ -46,26 +46,22 @@ const RatingEditor = ({ question, onChange }) => {
       </div>
 
       {/* Add Labels to Advanced Section */}
-       <div className="pt-4 border-t border-gray-100 space-y-4">
-            <TextInput
-              id={`low-label-${question.id}`}
-              label="Low Rating Label (optional)"
-              value={question.lowLabel || ""}
-              onChange={(e) =>
-                onChange({ ...question, lowLabel: e.target.value })
-              }
-              placeholder="e.g., Poor"
-            />
-             <TextInput
-              id={`high-label-${question.id}`}
-              label="High Rating Label (optional)"
-              value={question.highLabel || ""}
-              onChange={(e) =>
-                onChange({ ...question, highLabel: e.target.value })
-              }
-              placeholder="e.g., Excellent"
-            />
-       </div>
+      <div className="pt-4 border-t border-gray-100 space-y-4">
+        <TextInput
+          id={`low-label-${question.id}`}
+          label="Low Rating Label (optional)"
+          value={question.lowLabel || ""}
+          onChange={(e) => onChange({ ...question, lowLabel: e.target.value })}
+          placeholder="e.g., Poor"
+        />
+        <TextInput
+          id={`high-label-${question.id}`}
+          label="High Rating Label (optional)"
+          value={question.highLabel || ""}
+          onChange={(e) => onChange({ ...question, highLabel: e.target.value })}
+          placeholder="e.g., Excellent"
+        />
+      </div>
     </BaseEditor>
   );
 };

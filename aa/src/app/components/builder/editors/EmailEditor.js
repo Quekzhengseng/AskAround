@@ -29,12 +29,14 @@ const EmailEditor = ({ question, onChange }) => {
 
       {/* Add Verify Email Format to Advanced Section */}
       <div className="pt-4 border-t border-gray-100">
-         <ToggleSwitch
-            id={`verify-email-${question.id}`}
-            label="Verify Email Format"
-            checked={question.validation?.emailFormat !== false} // Default to true
-            onChange={(e) => handleValidationChange("emailFormat", e.target.checked)}
-          />
+        <ToggleSwitch
+          id={`verify-email-${question.id}`}
+          label="Verify Email Format"
+          checked={question.validation?.emailFormat !== false} // Default to true
+          onChange={(e) =>
+            handleValidationChange("emailFormat", e.target.checked)
+          }
+        />
       </div>
     </BaseEditor>
   );

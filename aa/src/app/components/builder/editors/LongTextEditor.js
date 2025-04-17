@@ -30,26 +30,42 @@ const LongTextEditor = ({ question, onChange }) => {
       {/* Add Min/Max Length to Advanced Section */}
       <div className="pt-4 border-t border-gray-100 space-y-4">
         <div className="flex items-center justify-between">
-          <label htmlFor={`min-chars-${question.id}`} className="text-sm text-gray-700">
+          <label
+            htmlFor={`min-chars-${question.id}`}
+            className="text-sm text-gray-700"
+          >
             Minimum Characters (optional)
           </label>
           <NumberInput
             id={`min-chars-${question.id}`}
             value={question.validation?.minLength || ""}
-            onChange={(e) => handleValidationChange("minLength", parseInt(e.target.value, 10) || undefined)}
+            onChange={(e) =>
+              handleValidationChange(
+                "minLength",
+                parseInt(e.target.value, 10) || undefined
+              )
+            }
             min="1"
             className="w-20 p-1"
             placeholder="None"
           />
         </div>
         <div className="flex items-center justify-between">
-          <label htmlFor={`max-chars-${question.id}`} className="text-sm text-gray-700">
+          <label
+            htmlFor={`max-chars-${question.id}`}
+            className="text-sm text-gray-700"
+          >
             Maximum Characters (optional)
           </label>
           <NumberInput
             id={`max-chars-${question.id}`}
             value={question.validation?.maxLength || ""}
-            onChange={(e) => handleValidationChange("maxLength", parseInt(e.target.value, 10) || undefined)}
+            onChange={(e) =>
+              handleValidationChange(
+                "maxLength",
+                parseInt(e.target.value, 10) || undefined
+              )
+            }
             min="1"
             className="w-20 p-1"
             placeholder="None"

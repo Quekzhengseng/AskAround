@@ -11,19 +11,22 @@ const SingleChoiceEditor = ({ question, onChange }) => {
 
   const validateOptions = (options) => {
     if (options.length < 2) {
-        setShowOptionsError("Must have at least 2 options.");
-        return false;
+      setShowOptionsError("Must have at least 2 options.");
+      return false;
     }
-    if (options.some(opt => typeof opt !== 'string' || opt.trim() === '')) {
-        setShowOptionsError("Options cannot be empty.");
-        return false;
+    if (options.some((opt) => typeof opt !== "string" || opt.trim() === "")) {
+      setShowOptionsError("Options cannot be empty.");
+      return false;
     }
     setShowOptionsError(false);
     return true;
-  }
+  };
 
   const addOption = () => {
-    const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
+    const newOptions = [
+      ...(question.options || []),
+      `Option ${(question.options?.length || 0) + 1}`,
+    ];
     onChange({ ...question, options: newOptions });
     validateOptions(newOptions);
   };
@@ -45,15 +48,17 @@ const SingleChoiceEditor = ({ question, onChange }) => {
   const deleteOption = (index) => {
     const currentOptions = question.options || [];
     if (currentOptions.length <= 2) {
-        validateOptions(currentOptions); // Show error if trying to delete below 2
-        return;
+      validateOptions(currentOptions); // Show error if trying to delete below 2
+      return;
     }
     const deletedOption = currentOptions[index];
     const newOptions = currentOptions.filter((_, i) => i !== index);
     onChange({
       ...question,
       options: newOptions,
-      ...(deletedOption === "Other (please specify)" && { hasOtherOption: false }),
+      ...(deletedOption === "Other (please specify)" && {
+        hasOtherOption: false,
+      }),
     });
     validateOptions(newOptions);
   };
@@ -74,7 +79,6 @@ const SingleChoiceEditor = ({ question, onChange }) => {
     setDraggedOptionIndex(index);
   };
 
-
   return (
     <BaseEditor question={question} onChange={onChange}>
       {/* Specific fields for Single Choice */}
@@ -84,15 +88,24 @@ const SingleChoiceEditor = ({ question, onChange }) => {
             Answer Options
           </label>
           <div className="flex gap-2">
-            <button onClick={addOption} type="button" className="text-sm text-purple-600 hover:text-purple-800 flex items-center gap-1">
+            <button
+              onClick={addOption}
+              type="button"
+              className="text-sm text-purple-600 hover:text-purple-800 flex items-center gap-1"
+            >
               {/* SVG Icon */} Add Option
             </button>
             <button
-              onClick={addOtherOption} type="button"
-              className={`text-sm flex items-center gap-1 ${question.hasOtherOption ? "text-gray-400 cursor-not-allowed" : "text-purple-600 hover:text-purple-800"}`}
+              onClick={addOtherOption}
+              type="button"
+              className={`text-sm flex items-center gap-1 ${
+                question.hasOtherOption
+                  ? "text-gray-400 cursor-not-allowed"
+                  : "text-purple-600 hover:text-purple-800"
+              }`}
               disabled={question.hasOtherOption}
             >
-               {/* SVG Icon */} Add "Other"
+              {/* SVG Icon */} Add "Other"
             </button>
           </div>
         </div>
@@ -113,11 +126,16 @@ const SingleChoiceEditor = ({ question, onChange }) => {
                 className="flex items-center gap-2 group"
                 draggable
                 onDragStart={() => handleDragStart(index)}
-                onDragOver={(e) => { e.preventDefault(); handleDragOver(index); }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  handleDragOver(index);
+                }}
                 onDragEnd={handleDragEnd}
               >
                 {/* Drag Handle SVG */}
-                <div className="cursor-move text-gray-400 hover:text-gray-600">...</div>
+                <div className="cursor-move text-gray-400 hover:text-gray-600">
+                  ...
+                </div>
                 <TextInput
                   id={`option-input-${index}-${question.id}`}
                   value={option}
@@ -127,11 +145,15 @@ const SingleChoiceEditor = ({ question, onChange }) => {
                 />
                 <button
                   onClick={() => deleteOption(index)}
-                  className={`transition-colors ${question.options?.length <= 2 ? "text-gray-300 cursor-not-allowed" : "text-gray-400 hover:text-red-600"}`}
+                  className={`transition-colors ${
+                    question.options?.length <= 2
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "text-gray-400 hover:text-red-600"
+                  }`}
                   disabled={question.options?.length <= 2}
                   aria-label="Delete option"
                 >
-                   {/* Delete SVG */} X
+                  {/* Delete SVG */} X
                 </button>
               </motion.div>
             ))}
@@ -142,11 +164,11 @@ const SingleChoiceEditor = ({ question, onChange }) => {
       {/* Add Randomize to Advanced Settings */}
       <div className="pt-4 border-t border-gray-100">
         <ToggleSwitch
-            id={`randomize-${question.id}`}
-            label="Randomize Options"
-            checked={question.randomize || false}
-            onChange={toggleRandomize}
-          />
+          id={`randomize-${question.id}`}
+          label="Randomize Options"
+          checked={question.randomize || false}
+          onChange={toggleRandomize}
+        />
       </div>
     </BaseEditor>
   );
