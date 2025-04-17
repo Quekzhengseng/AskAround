@@ -17,6 +17,24 @@ services:
     networks:
       - surveyNetwork
 
+  survey_publisher:
+    build:
+      context: ./survey_publisher/
+      dockerfile: Dockerfile
+    image: AskAround/survey-publisher:1.0
+    volumes:
+      - ./secrets:/secrets
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - PYTHONUNBUFFERED=1
+    # restart: always
+    container_name: survey-publisher
+    ports:
+      - "5002:5002"
+    networks:
+      - surveyNetwork
+
 networks:
   surveyNetwork:
     driver: bridge
