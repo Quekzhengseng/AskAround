@@ -11,6 +11,7 @@ import { SurveyPublisherAPI } from "../../utils/SurveyPublisherAPI"; // For CUD 
 import Link from "next/link";
 import TextInput from "../common/TextInput"; // Reusable input
 import TextArea from "../common/TextArea"; // Reusable textarea
+import ToggleSwitch from "./../common/ToggleSwitch";
 
 const SurveyCreatorPage = () => {
   // --- State ---
@@ -237,6 +238,12 @@ const SurveyCreatorPage = () => {
               </h1>
             )}
           </div>
+          <ToggleSwitch
+            leftOption="Do Surveys"
+            rightOption="Create Survey"
+            leftPath="/"
+            rightPath="/curator"
+          />
           {/* Right Section */}
           <div className="flex-1 flex justify-end items-center gap-2">
             {isCreating ? (

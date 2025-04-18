@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import SurveyContainer from "./components/survey/SurveyContainer";
 import Link from "next/link";
 import { SurveyAPI } from "./utils/SurveyAPI";
+import ToggleSwitch from "./components/common/ToggleSwitch";
 
 export default function Home() {
   // You can replace this with actual user ID from authentication
@@ -97,6 +98,12 @@ export default function Home() {
           </div>
 
           <div className="flex-1 flex justify-end">
+            <ToggleSwitch
+              leftOption="Do Surveys"
+              rightOption="Create Survey"
+              leftPath="/"
+              rightPath="/curator"
+            />
             <Link
               href="/profile"
               className="flex items-center justify-center w-10 h-10 mx-2 rounded-full bg-purple-100 hover:bg-purple-200 transition-colors duration-300"

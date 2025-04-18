@@ -1,39 +1,57 @@
-// src/app/components/common/ToggleSwitch.js
-import React from "react";
+"use client";
 
-const ToggleSwitch = ({ id, label, checked, onChange, disabled = false }) => {
-  // Define colors directly here (or pass as props if needed elsewhere)
-  const activeColor = '#7c3aed'; // Example Purple
-  const focusRingColor = 'rgba(124, 58, 237, 0.5)'; // Example Purple focus ring
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+
+const ToggleSwitch = ({
+  leftOption = "Page 1",
+  rightOption = "Page 2",
+  leftPath = "/page1",
+  rightPath = "/page2",
+  initialValue = "left",
+}) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [selected, setSelected] = useState(initialValue);
+
+  // Set initial state based on current path
+  useEffect(() => {
+    console.log("Current pathname:", pathname);
+    if (pathname === leftPath) {
+      setSelected("left");
+    } else if (pathname === rightPath) {
+      setSelected("right");
+    }
+  }, [pathname, leftPath, rightPath]);
+
+  const handleToggle = (value) => {
+    setSelected(value);
+    router.push(value === "left" ? leftPath : rightPath);
+  };
 
   return (
-    <label
-      htmlFor={id}
-      className={`flex items-center justify-between cursor-pointer ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-    >
-      <span className="text-sm text-[#4b5563] mr-3">{label}</span> {/* text-secondary */}
-      <div className="relative inline-block">
-        <input
-          type="checkbox"
-          id={id}
-          checked={checked}
-          onChange={onChange}
-          disabled={disabled}
-          className="sr-only peer"
-        />
-        {/* Background Track - uses arbitrary color */}
-        <div
-          className={`w-11 h-6 rounded-full transition-colors duration-200 ease-in-out
-                     peer-checked:bg-[${activeColor}] bg-gray-200 peer-disabled:bg-gray-200
-                     peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-1 peer-focus:ring-[${focusRingColor}]`}
-        ></div>
-        {/* Switch Handle */}
-        <div
-          className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 ease-in-out
-                     peer-checked:translate-x-5 translate-x-0`}
-        ></div>
-      </div>
-    </label>
+    <div className="inline-flex items-center p-1 rounded-full bg-gray-100 shadow-inner">
+      <button
+        onClick={() => handleToggle("left")}
+        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+          selected === "left"
+            ? "bg-white text-purple-700 shadow"
+            : "text-gray-500 hover:text-gray-700"
+        }`}
+      >
+        {leftOption}
+      </button>
+      <button
+        onClick={() => handleToggle("right")}
+        className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+          selected === "right"
+            ? "bg-white text-purple-700 shadow"
+            : "text-gray-500 hover:text-gray-700"
+        }`}
+      >
+        {rightOption}
+      </button>
+    </div>
   );
 };
 
