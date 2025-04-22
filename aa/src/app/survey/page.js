@@ -1,46 +1,90 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import SurveyContainer from "./../components/survey/SurveyContainer";
 import Link from "next/link";
-import { SurveyAPI } from "./utils/SurveyAPI";
-import ToggleSwitch from "./components/common/ToggleSwitch";
+import { SurveyAPI } from "./../utils/SurveyAPI";
+import ToggleSwitch from "./../components/common/ToggleSwitch";
 
-export default function Home() {
+export default function SurveyPage() {
+  // Get the survey ID from URL params
+  const searchParams = useSearchParams();
+  const surveyId = searchParams.get("id");
+  const router = useRouter();
+
   // You can replace this with actual user ID from authentication
   const userId = "user_data-001";
 
-  // State for surveys and loading status
-  const [toBeAnsweredSurveys, setToBeAnsweredSurveys] = useState([]);
+  // State for survey and loading status
+  const [currentSurvey, setCurrentSurvey] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Function to fetch surveys
-  const fetchSurveys = async () => {
+  // Function to fetch the specific survey
+  const fetchSurvey = async () => {
+    if (!surveyId) {
+      setError("No survey ID provided");
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const data = await SurveyAPI.getUserToBeAnsweredSurveys(userId);
-      console.log("To-be-answered surveys:", data);
-      setToBeAnsweredSurveys(data);
-      return data;
+      // Get all surveys the user needs to answer
+      const surveys = await SurveyAPI.getUserToBeAnsweredSurveys(userId);
+
+      // Find the specific survey by ID
+      const survey = surveys.find((s) => s.id === surveyId);
+
+      if (!survey) {
+        setError("Survey not found or not available for this user");
+      } else {
+        setCurrentSurvey(survey);
+      }
     } catch (err) {
-      console.error("Error fetching to-be-answered surveys:", err);
-      setError(err.message || "Failed to fetch surveys");
-      return [];
+      console.error("Error fetching survey:", err);
+      setError(err.message || "Failed to fetch survey");
     } finally {
       setLoading(false);
     }
   };
 
-  // Initial fetch of surveys
+  // Initial fetch of the survey
   useEffect(() => {
-    fetchSurveys();
-  }, []);
+    fetchSurvey();
+  }, [surveyId]);
+
+  // Handle survey completion
+  const handleSurveyComplete = () => {
+    // Navigate back to the survey list
+    router.push("/");
+  };
 
   return (
     <div className="min-h-screen bg-linear-135/oklch from-white via-purple-50 to-blue-100/40">
       <main className="container mx-auto px-4 py-12">
         <header className="flex justify-between items-center mb-12">
-          <div className="flex-1">{/* Empty div for alignment balance */}</div>
+          <div className="flex-1">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Back to All Surveys
+            </Link>
+          </div>
 
           <div className="text-center perspective-distant flex-1">
             <h1 className="text-4xl font-bold mb-2 font-display transform-3d hover:rotate-x-2 transition-transform duration-300">
@@ -112,52 +156,38 @@ export default function Home() {
         {/* Error state */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
-            <p className="font-medium">There was an error loading surveys</p>
+            <p className="font-medium">There was an error loading the survey</p>
             <p className="text-sm">{error}</p>
           </div>
         )}
 
-        {/* No surveys available */}
-        {!loading && !error && toBeAnsweredSurveys.length === 0 && (
+        {/* No survey available */}
+        {!loading && !error && !currentSurvey && (
           <div className="text-center py-16">
             <h2 className="text-2xl font-medium text-gray-700 mb-2">
-              No Surveys Available
+              Survey Not Found
             </h2>
-            <p className="text-gray-500">
-              Check back later for new surveys to answer.
+            <p className="text-gray-500 mb-6">
+              The requested survey doesn't exist or isn't available.
             </p>
+            <Link
+              href="/"
+              className="bg-purple-600 hover:bg-purple-700 text-white py-2 px-6 rounded-lg transition-colors"
+            >
+              Return to All Surveys
+            </Link>
           </div>
         )}
 
         {/* Survey container */}
-        {!loading && !error && (
+        {!loading && !error && currentSurvey && (
           <div className="transition-opacity duration-300 ease-in-out">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {toBeAnsweredSurveys.map((survey) => (
-                <Link href={`/survey?id=${survey.id}`} key={survey.id}>
-                  <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer transform hover:-translate-y-1 transition-transform">
-                    <div className="bg-purple-100 px-4 py-3">
-                      <h3 className="font-medium text-purple-800 truncate">
-                        {survey.title || survey.id}
-                      </h3>
-                    </div>
-                    <div className="p-4">
-                      <p className="text-gray-600 mb-4 line-clamp-3">
-                        {survey.description}
-                      </p>
-                      <div className="flex justify-between items-center">
-                        <div className="text-sm text-gray-500">
-                          {survey.questions.length} questions
-                        </div>
-                        <div className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                          Start Survey
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <SurveyContainer
+              key={currentSurvey.id}
+              survey={currentSurvey}
+              userId={userId}
+              onComplete={handleSurveyComplete}
+            />
           </div>
         )}
       </main>
