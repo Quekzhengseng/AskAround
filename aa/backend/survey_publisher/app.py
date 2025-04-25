@@ -48,10 +48,10 @@ def create_survey():
 
         # Prepare survey data with ONLY the 4 required fields
         survey_data = {
-            'id': f"survey-{uuid.uuid4()}",
+            'survey_id': str(uuid.uuid4()),
             'title': data['title'],
             'description': data.get('description', ''), # Use .get for optional description
-            'questions': data['questions'],
+            'questions': data['questions'], 
             # --- REMOVED ALL OTHER FIELDS ---
             # 'status': 'draft',
             # 'is_published': False,
@@ -59,7 +59,7 @@ def create_survey():
             # 'created_at': datetime.now(timezone.utc).isoformat(),
             # 'updated_at': datetime.now(timezone.utc).isoformat()
         }
-        print(f"Attempting to insert minimal survey data: {survey_data['id']}")
+        # print(f"Attempting to insert minimal survey data: {survey_data}")
 
         # Insert into database
         response = supabase.table('surveys').insert(survey_data).execute()
@@ -70,13 +70,13 @@ def create_survey():
             # Return a clear error message
             return jsonify({'success': False, 'error': f"Database error: {response.error.message}"}), 500
 
-        print(f"Insert successful for survey: {survey_data['id']}")
+        print(f"Insert successful for survey: {survey_data['survey_id']}")
 
         # Return the generated ID
         return jsonify({
             'success': True,
             'data': {
-                'id': survey_data['id'],
+                'id': survey_data['survey_id'],
                 'message': 'Survey created successfully'
             }
         }), 201
@@ -95,7 +95,7 @@ def update_survey(survey_id):
              return jsonify({'success': False, 'error': 'Missing request body'}), 400
 
         # Check if survey exists
-        count_response = supabase.table('surveys').select('id', count='exact').eq('id', survey_id).execute()
+        count_response = supabase.table('surveys').select('survey_id', count='exact').eq('survey_id', survey_id).execute()
         if count_response.count == 0:
             return jsonify({'success': False, 'error': f'Survey with ID {survey_id} not found'}), 404
 
@@ -114,7 +114,7 @@ def update_survey(survey_id):
 
         print(f"Attempting to update survey {survey_id} with: {list(update_data.keys())}")
         # Update in database
-        response = supabase.table('surveys').update(update_data).eq('id', survey_id).execute()
+        response = supabase.table('surveys').update(update_data).eq('survey_id', survey_id).execute()
 
         if hasattr(response, 'error') and response.error:
             print(f"Supabase Error updating survey {survey_id}: {response.error.message} (Code: {response.error.code})")
@@ -135,15 +135,16 @@ def update_survey(survey_id):
 @app.route('/surveys/<survey_id>', methods=['DELETE'])
 def delete_survey(survey_id):
     """Delete a survey"""
+    print(f" deleteing a survey with {survey_id}ID")
     try:
         # Check if survey exists
-        count_response = supabase.table('surveys').select('id', count='exact').eq('id', survey_id).execute()
+        count_response = supabase.table('surveys').select('survey_id', count='exact').eq('survey_id', survey_id).execute()
         if count_response.count == 0:
             return jsonify({'success': False, 'error': f'Survey with ID {survey_id} not found'}), 404
 
         print(f"Attempting to delete survey: {survey_id}")
         # Delete from database
-        response = supabase.table('surveys').delete().eq('id', survey_id).execute()
+        response = supabase.table('surveys').delete().eq('survey_id', survey_id).execute()
 
         if hasattr(response, 'error') and response.error:
             print(f"Supabase Error deleting survey {survey_id}: {response.error.message} (Code: {response.error.code})")
@@ -168,7 +169,7 @@ def publish_survey(survey_id):
     # It will only check if the survey exists and potentially update user lists.
     try:
         # Check if survey exists
-        survey_response = supabase.table('surveys').select('id').eq('id', survey_id).maybe_single().execute()
+        survey_response = supabase.table('surveys').select('survey_id').eq('survey_id', survey_id).maybe_single().execute()
         if not survey_response.data:
             return jsonify({'success': False, 'error': f'Survey with ID {survey_id} not found'}), 404
 
@@ -201,7 +202,7 @@ def unpublish_survey(survey_id):
     # NOTE: This endpoint cannot truly unpublish without status/is_published columns.
     try:
         # Check if survey exists
-        survey_response = supabase.table('surveys').select('id').eq('id', survey_id).maybe_single().execute()
+        survey_response = supabase.table('surveys').select('survey_id').eq('survey_id', survey_id).maybe_single().execute()
         if not survey_response.data:
             return jsonify({'success': False, 'error': f'Survey with ID {survey_id} not found'}), 404
 
@@ -233,7 +234,7 @@ def health_check():
     db_status = "unknown"
     try:
         # Check connection by selecting from surveys table
-        supabase.table('surveys').select('id', count='exact').limit(1).execute()
+        supabase.table('surveys').select('survey_id', count='exact').limit(1).execute()
         db_status = "ok"
     except Exception as db_e:
         # Catch potential errors if 'surveys' table doesn't exist or other DB issues
