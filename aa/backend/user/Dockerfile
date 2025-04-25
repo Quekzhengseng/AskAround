@@ -16,7 +16,7 @@ RUN echo "SUPABASE_URL=${SUPABASE_URL}" > .env
 RUN echo "SUPABASE_KEY=${SUPABASE_KEY}" >> .env
 
 # Expose port
-EXPOSE 5004
+EXPOSE 5001
 
 # Run the application
 CMD ["python", "app.py"]

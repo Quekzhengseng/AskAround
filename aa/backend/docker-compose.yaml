@@ -1,19 +1,55 @@
+version: '3'
+
 services:
-  survey:
-    build:
-      context: ./survey_responder
-      dockerfile: dockerfile.survey
-    image: AskAround/survey-responder:1.0
-    volumes:
-      - ./secrets:/secrets
+  survey-service:
+    build: 
+      context: ./survey
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
     environment:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
-      - PYTHONUNBUFFERED=1
-    # restart: always
-    container_name: survey-responder
+    restart: unless-stopped
+    networks:
+      - surveyNetwork
+
+  user-service:
+    build: 
+      context: ./user
+      dockerfile: Dockerfile
     ports:
       - "5001:5001"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+    restart: unless-stopped
+    networks:
+      - surveyNetwork
+
+  voucher-service:
+    build: 
+      context: ./voucher
+      dockerfile: Dockerfile
+    ports:
+      - "5002:5002"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+    restart: unless-stopped
+    networks:
+      - surveyNetwork
+
+  scheduler-service:
+    build: 
+      context: ./scheduler_service
+      dockerfile: Dockerfile
+    ports:
+      - "5003:5003"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+    restart: unless-stopped
     networks:
       - surveyNetwork
 
@@ -31,7 +67,7 @@ services:
     # restart: always
     container_name: survey-publisher
     ports:
-      - "5002:5002"
+      - "5004:5004"
     networks:
       - surveyNetwork
 

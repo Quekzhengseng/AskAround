@@ -1,12 +1,16 @@
 // utils/surveyAPI.js
-const API_BASE_URL = "http://localhost:5001";
+
+// Update the base URL for each service
+const SURVEY_SERVICE_URL = "http://localhost:5000";
+const USER_SERVICE_URL = "http://localhost:5001";
+const VOUCHER_SERVICE_URL = "http://localhost:5002";
 
 /**
- * Helper function to handle API requests
+ * Helper function to handle API requests with dynamic base URL
  */
-async function apiRequest(endpoint, method = "GET", data = null) {
-  console.log("Calling: " + endpoint);
-  const url = `${API_BASE_URL}${endpoint}`;
+async function apiRequest(baseUrl, endpoint, method = "GET", data = null) {
+  console.log(`Calling: ${baseUrl}${endpoint}`);
+  const url = `${baseUrl}${endpoint}`;
   const options = {
     method,
     headers: {
@@ -42,7 +46,7 @@ export const SurveyAPI = {
    * Get all available surveys
    */
   getAllSurveys: async () => {
-    const response = await apiRequest("/survey");
+    const response = await apiRequest(SURVEY_SERVICE_URL, "/survey");
     return response.data;
   },
 
@@ -50,7 +54,10 @@ export const SurveyAPI = {
    * Get surveys that a user needs to answer
    */
   getUserToBeAnsweredSurveys: async (userId) => {
-    const response = await apiRequest(`/user/${userId}/surveys/to-answer`);
+    const response = await apiRequest(
+      USER_SERVICE_URL,
+      `/user/${userId}/surveys/to-answer`
+    );
     return response.data;
   },
 
@@ -58,7 +65,7 @@ export const SurveyAPI = {
    * Check the health status of the API
    */
   healthCheck: async () => {
-    return await apiRequest("/health");
+    return await apiRequest(SURVEY_SERVICE_URL, "/health");
   },
 
   /**
@@ -87,7 +94,7 @@ export const UserAPI = {
    * Get user data
    */
   getUserData: async (userId) => {
-    const response = await apiRequest(`/user/${userId}`);
+    const response = await apiRequest(USER_SERVICE_URL, `/user/${userId}`);
     return response.data;
   },
 
@@ -95,10 +102,15 @@ export const UserAPI = {
    * Change points of the User
    */
   changePoints: async (userId, surveyId, questionId) => {
-    const response = await apiRequest(`/user/next/${userId}`, "PUT", {
-      survey_id: surveyId,
-      question_id: questionId,
-    });
+    const response = await apiRequest(
+      USER_SERVICE_URL,
+      `/user/next/${userId}`,
+      "PUT",
+      {
+        survey_id: surveyId,
+        question_id: questionId,
+      }
+    );
     return response;
   },
 
@@ -106,7 +118,10 @@ export const UserAPI = {
    * Get all user data for saved questions
    */
   getSavedQuestions: async (userId) => {
-    const response = await apiRequest(`/user/savedquestion/${userId}`);
+    const response = await apiRequest(
+      USER_SERVICE_URL,
+      `/user/savedquestion/${userId}`
+    );
     return response.data;
   },
 
@@ -114,7 +129,11 @@ export const UserAPI = {
    * Delete specific saved question per user
    */
   removeSavedQuestion: async (userId, index) => {
-    const response = await apiRequest(`/user/${userId}/${index}`, "DELETE");
+    const response = await apiRequest(
+      USER_SERVICE_URL,
+      `/user/${userId}/${index}`,
+      "DELETE"
+    );
     return response.data;
   },
 
@@ -122,7 +141,7 @@ export const UserAPI = {
    * Add a question response for a specific user
    */
   addQuestionResponse: async (userId, question, answer) => {
-    return await apiRequest(`/user/add/${userId}`, "PUT", {
+    return await apiRequest(USER_SERVICE_URL, `/user/add/${userId}`, "PUT", {
       question,
       answer,
     });
@@ -132,7 +151,7 @@ export const UserAPI = {
    * Add a survey to user's answered surveys list
    */
   addAnsweredSurvey: async (userId, surveyId) => {
-    return await apiRequest(`/user/${userId}`, "PUT", {
+    return await apiRequest(USER_SERVICE_URL, `/user/${userId}`, "PUT", {
       survey_id: surveyId,
     });
   },
@@ -141,7 +160,7 @@ export const UserAPI = {
    * Move a survey from to-be-answered to answered list
    */
   moveToAnsweredSurveys: async (userId, surveyId) => {
-    return await apiRequest(`/user/move/${userId}`, "PUT", {
+    return await apiRequest(USER_SERVICE_URL, `/user/move/${userId}`, "PUT", {
       survey_id: surveyId,
     });
   },
@@ -189,7 +208,7 @@ export const VoucherAPI = {
    * Get Voucher data
    */
   getVoucher: async () => {
-    const response = await apiRequest(`/voucher`);
+    const response = await apiRequest(VOUCHER_SERVICE_URL, `/voucher`);
     return response.data;
   },
 };

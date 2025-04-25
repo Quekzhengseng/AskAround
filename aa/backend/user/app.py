@@ -1,21 +1,15 @@
+# user_service.py
 import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_apscheduler import APScheduler
-from datetime import datetime, timezone
 from supabase import create_client
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
-
-scheduler = APScheduler()
-scheduler.init_app(app)
-scheduler.start()
-
-# In your Flask app
 CORS(app, resources={r"/*": {
     "origins": "*",  
     "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -27,44 +21,10 @@ supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
 
 if not supabase_url or not supabase_key:
-    raise ValueError("Missing Supabase credentials. Please set SUPABASE_URL and SUPABASE_KEY environment variables.")
+    raise ValueError("Missing Supabase credentials")
 
 supabase = create_client(supabase_url, supabase_key)
-print("Supabase initialized successfully for Surveys!")
-
-# Import utility functions for Supabase
-from utils_supabase import upload_survey, clear_supabase
-
-# Clear Supabase before initializing
-clear_supabase(supabase)
-
-# Populate Supabase with sample survey data
-upload_survey(supabase)
-
-"""Helper Functions"""
-
-def retrieve_all_surveys():
-    """Retrieve all surveys from Supabase"""
-    response = supabase.table("surveys").select("*").execute()
-    if hasattr(response, 'error') and response.error:
-        raise Exception(f"Error retrieving surveys: {response.error}")
-    return response.data
-
-"""API End Points"""
-@app.route('/survey', methods=['GET'])
-def get_all_surveys():    
-    """Endpoint to retrieve all surveys"""
-    try:
-        survey_data = retrieve_all_surveys()
-        return jsonify({
-            'success': True,
-            'data': survey_data
-        }), 200
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+print("Supabase initialized for User Service!")
 
 @app.route('/user/<id>', methods=['GET'])
 def get_specific_user_data(id):
@@ -90,7 +50,32 @@ def get_specific_user_data(id):
             'success': False,
             'error': str(e)
         }), 500
-    
+
+@app.route('/user/savedquestion/<id>', methods=['GET'])
+def get_saved_questions(id):
+    """Endpoint to retrieve the specific user's saved questions"""
+    try:
+        response = supabase.table('users').select("saved_questions").eq('UID', id).execute()
+        
+        if not response.data:
+            return jsonify({
+                'success': False,
+                'error': 'User not found'
+            }), 404
+            
+        # Get the saved questions or an empty list if none
+        saved_questions = response.data[0].get("saved_questions", [])
+        
+        return jsonify({
+            'success': True,
+            'data': saved_questions
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/user/<id>/<num>', methods=['DELETE'])
 def delete_specific_saved_question(id, num):
     """Endpoint to delete a particular saved question"""
@@ -112,31 +97,6 @@ def delete_specific_saved_question(id, num):
         del saved_questions[index]
 
         response = supabase.table('users').update({'saved_questions': saved_questions}).eq('UID', id).execute()
-        
-        return jsonify({
-            'success': True,
-            'data': saved_questions
-        }), 200
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/user/savedquestion/<id>', methods=['GET'])
-def get_saved_questions(id):
-    """Endpoint to retrieve the specific user's saved questions"""
-    try:
-        response = supabase.table('users').select("saved_questions").eq('UID', id).execute()
-        
-        if not response.data:
-            return jsonify({
-                'success': False,
-                'error': 'User not found'
-            }), 404
-            
-        # Get the saved questions or an empty list if none
-        saved_questions = response.data[0].get("saved_questions", [])
         
         return jsonify({
             'success': True,
@@ -193,7 +153,50 @@ def add_to_responded(id):
             'success': False,
             'error': str(e)
         }), 500
-    
+
+@app.route('/user/<id>/surveys/to-answer', methods=['GET'])
+def get_user_to_be_answered_surveys(id):
+    """Endpoint to retrieve the surveys a specific user needs to answer"""
+    try:
+        # Get the user data
+        user_response = supabase.table('users').select("to_be_answered_surveys").eq('UID', id).execute()
+
+        if not user_response.data:
+            return jsonify({
+                'success': False,
+                'error': 'User not found'
+            }), 404
+            
+        # Get the survey IDs to be answered
+        user_data = user_response.data[0]
+        to_be_answered = user_data.get('to_be_answered_surveys', [])
+        survey_ids = [item['survey_id'] for item in to_be_answered if 'survey_id' in item]
+        
+        if not survey_ids:
+            # No surveys to answer
+            return jsonify({
+                'success': True,
+                'data': []
+            }), 200
+        
+        # Fetch the actual survey documents
+        surveys = []
+        
+        for survey_id in survey_ids:
+            survey_response = supabase.table('surveys').select("*").eq('survey_id', survey_id).execute()
+            if survey_response.data:
+                surveys.append(survey_response.data[0])
+        
+        return jsonify({
+            'success': True,
+            'data': surveys
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/user/<id>', methods=['PUT'])
 def add_answered_surveys(id):
@@ -209,8 +212,7 @@ def add_answered_surveys(id):
             'survey_id': survey_id,
             'timestamp': datetime.now(timezone.utc).isoformat()
         }
-# ASK ZHENG SENG IF THIS MAKES SENSE -- WHETHER TO CREATE A USER when answering without an account, 
-# probably still need a user id but dont need to a add to that column
+
         if not user_response.data:
             # Create new user with the answered survey
             supabase.table('users').insert({
@@ -238,7 +240,6 @@ def add_answered_surveys(id):
             'success': False,
             'error': str(e)
         }), 500
-
 
 @app.route('/user/move/<id>', methods=['PUT'])
 def remove_answered_surveys(id):
@@ -299,51 +300,6 @@ def remove_answered_surveys(id):
             'success': False,
             'error': str(e)
         }), 500
-    
-@app.route('/user/<id>/surveys/to-answer', methods=['GET'])
-def get_user_to_be_answered_surveys(id):
-    """Endpoint to retrieve the surveys a specific user needs to answer"""
-    try:
-        # Get the user data
-        user_response = supabase.table('users').select("to_be_answered_surveys").eq('UID', id).execute()
-
-        if not user_response.data:
-            return jsonify({
-                'success': False,
-                'error': 'User not found'
-            }), 404
-            
-        # Get the survey IDs to be answered
-        user_data = user_response.data[0]
-        to_be_answered = user_data.get('to_be_answered_surveys', [])
-        survey_ids = [item['survey_id'] for item in to_be_answered if 'survey_id' in item]
-        
-        if not survey_ids:
-            # No surveys to answer
-            return jsonify({
-                'success': True,
-                'data': []
-            }), 200
-        
-        # Fetch the actual survey documents
-        surveys = []
-        
-        for survey_id in survey_ids:
-            survey_response = supabase.table('surveys').select("*").eq('survey_id', survey_id).execute()
-            if survey_response.data:
-                surveys.append(survey_response.data[0])
-        
-        return jsonify({
-            'success': True,
-            'data': surveys
-        }), 200
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-    
 
 @app.route('/user/next/<id>', methods=['PUT'])
 def change_points(id):
@@ -414,71 +370,9 @@ def change_points(id):
             'error': str(e)
         }), 500
 
-#Voucher API
-
-@app.route('/voucher', methods=['GET'])
-def get_vouchers():
-    """Endpoint to retrieve voucher data"""
-    try:
-        response = supabase.table('vouchers').select("*").execute()
-        
-        if not response.data:
-            return jsonify({
-                'success': False,
-                'error': 'Vouchers not found'
-            }), 404
-        
-        return jsonify({
-            'success': True,
-            'data': response.data
-        }), 200
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Simple health check endpoint"""
-    return jsonify({"status": "healthy"})
-
-"""Scheduled Cron Jobs"""
-@scheduler.task('cron', id='update_user_surveys', minute='*/1')
-def update_user_surveys():
-    """Job that runs every 1 minute to update users' to-be-answered survey lists"""
-    try:
-        print("Running scheduled task to update user surveys...")
-        
-        # Get all available surveys
-        surveys_response = supabase.table('surveys').select("survey_id").execute()
-        all_survey_ids = [survey["survey_id"] for survey in surveys_response.data]
-        
-        # Get all users
-        users_response = supabase.table('users').select("UID,answered_surveys").execute()
-        
-        for user in users_response.data:
-            user_id = user["UID"]
-            
-            # Get the list of surveys this user has already answered
-            answered_surveys = []
-            if 'answered_surveys' in user and user['answered_surveys']:
-                answered_surveys = [survey_item['survey_id'] for survey_item in user.get('answered_surveys', [])]
-            
-            # Find surveys the user hasn't answered yet
-            to_be_answered = [survey_id for survey_id in all_survey_ids if survey_id not in answered_surveys]
-            
-            # Update the user's to_be_answered_surveys field
-            supabase.table('users').update({
-                'to_be_answered_surveys': [{'survey_id': survey_id} for survey_id in to_be_answered]
-            }).eq('UID', user_id).execute()
-            
-        print(f"Successfully updated to-be-answered surveys for {len(users_response.data)} users")
-        
-    except Exception as e:
-        print(f"Error updating user surveys: {str(e)}")
-
+    return jsonify({"status": "healthy", "service": "user"})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True, port=5001)

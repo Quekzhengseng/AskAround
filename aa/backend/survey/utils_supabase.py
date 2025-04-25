@@ -861,17 +861,6 @@ sample_survey = [{
     }
 ]
 
-# user_data = [{
-#     "UID": "user_data-001",
-#     "username" : "user-001",
-#     "Surveys": [],
-#     "points": 0,
-#     "saved_questions": [],
-#     "answered_surveys": [],
-#     "to_be_answered_surveys": [],
-#     "vouchers": [],
-#     "used_vouchers": []
-# }]
 
 voucher_data = [{
     "id" : "voucher-001",
@@ -895,13 +884,6 @@ def upload_survey(supabase):
             print(f"Error uploading survey {survey['survey_id']}: {result.error}")
         else:
             print(f"Survey {survey['survey_id']} uploaded successfully!")
-
-    # for user in user_data:
-    #     result = supabase.table("users").upsert(user).execute()
-    #     if hasattr(result, 'error') and result.error:
-    #         print(f"Error uploading user {user['UID']}: {result.error}")
-    #     else:
-    #         print(f"User {user['UID']} uploaded successfully!")
 
     for voucher in voucher_data:
         result = supabase.table("vouchers").upsert(voucher).execute()
