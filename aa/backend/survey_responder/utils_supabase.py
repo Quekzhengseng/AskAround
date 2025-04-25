@@ -1,4 +1,5 @@
 # utils_supabase.py
+import uuid # Added import
 
 # Define question types
 QUESTION_TYPES = {
@@ -14,7 +15,7 @@ QUESTION_TYPES = {
 
 # Sample survey data
 sample_survey = [{
-    "survey_id": "sample-survey-001",
+    "survey_id": str(uuid.uuid4()), # Replaced with uuid
     "title": "Singapore Management University Toilet Survey",
     "description": "To survey toilets at SMU",
     "questions": [
@@ -71,9 +72,9 @@ sample_survey = [{
             "points": 5
         },
     ],
-}, 
+},
 {
-    "survey_id": "sample-survey-002",
+    "survey_id": str(uuid.uuid4()), # Replaced with uuid
     "title": "SMU Campus Facilities Feedback",
     "description": "Collecting feedback on various campus facilities at Singapore Management University",
     "questions": [
@@ -226,7 +227,7 @@ sample_survey = [{
         }
     ],
 },  {
-        "survey_id": "sample-survey-003",
+        "survey_id": str(uuid.uuid4()), # Replaced with uuid
         "title": "Remote Work Preferences",
         "description": "Understanding how professionals adapt to remote work environments",
         "questions": [
@@ -284,7 +285,7 @@ sample_survey = [{
         ]
     },
     {
-        "survey_id": "sample-survey-004",
+        "survey_id": str(uuid.uuid4()), # Replaced with uuid
         "title": "Digital Entertainment Habits",
         "description": "Survey about streaming services and digital entertainment preferences",
         "questions": [
@@ -349,7 +350,7 @@ sample_survey = [{
         ]
     },
     {
-        "survey_id": "sample-survey-005",
+        "survey_id": str(uuid.uuid4()), # Replaced with uuid
         "title": "Sustainable Living Practices",
         "description": "Understanding individuals' sustainability habits and awareness",
         "questions": [
@@ -409,7 +410,7 @@ sample_survey = [{
         ]
     },
     {
-        "survey_id": "sample-survey-006",
+        "survey_id": str(uuid.uuid4()), # Replaced with uuid
         "title": "Food Delivery Experience",
         "description": "Feedback on food delivery services and preferences",
         "questions": [
@@ -474,7 +475,7 @@ sample_survey = [{
         ]
     },
     {
-        "survey_id": "sample-survey-007",
+        "survey_id": str(uuid.uuid4()), # Replaced with uuid
         "title": "Travel Preferences Post-Pandemic",
         "description": "Understanding how travel habits have changed after the pandemic",
         "questions": [
@@ -533,7 +534,7 @@ sample_survey = [{
         ]
     },
     {
-        "survey_id": "sample-survey-008",
+        "survey_id": str(uuid.uuid4()), # Replaced with uuid
         "title": "Coffee Consumption Habits",
         "description": "Survey on coffee preferences and drinking habits",
         "questions": [
@@ -599,7 +600,7 @@ sample_survey = [{
         ]
     },
     {
-        "survey_id": "sample-survey-009",
+        "survey_id": str(uuid.uuid4()), # Replaced with uuid
         "title": "Fitness Routines",
         "description": "Understanding personal fitness habits and preferences",
         "questions": [
@@ -667,7 +668,7 @@ sample_survey = [{
         ]
     },
     {
-        "survey_id": "sample-survey-010",
+        "survey_id": str(uuid.uuid4()), # Replaced with uuid
         "title": "Reading Habits Survey",
         "description": "Understanding people's reading preferences and behaviors",
         "questions": [
@@ -734,7 +735,7 @@ sample_survey = [{
         ]
     },
     {
-        "survey_id": "sample-survey-011",
+        "survey_id": str(uuid.uuid4()), # Replaced with uuid
         "title": "Smart Home Technology",
         "description": "Survey on smart home device adoption and preferences",
         "questions": [
@@ -794,7 +795,7 @@ sample_survey = [{
         ]
     },
     {
-        "survey_id": "sample-survey-012",
+        "survey_id": str(uuid.uuid4()), # Replaced with uuid
         "title": "Personal Finance Management",
         "description": "Understanding how people manage their personal finances",
         "questions": [
@@ -860,17 +861,17 @@ sample_survey = [{
     }
 ]
 
-user_data = [{
-    "UID": "user_data-001",
-    "username" : "user-001",
-    "Surveys": [],
-    "points": 0,
-    "saved_questions": [],
-    "answered_surveys": [],
-    "to_be_answered_surveys": [],
-    "vouchers": [],
-    "used_vouchers": []
-}]
+# user_data = [{
+#     "UID": "user_data-001",
+#     "username" : "user-001",
+#     "Surveys": [],
+#     "points": 0,
+#     "saved_questions": [],
+#     "answered_surveys": [],
+#     "to_be_answered_surveys": [],
+#     "vouchers": [],
+#     "used_vouchers": []
+# }]
 
 voucher_data = [{
     "id" : "voucher-001",
@@ -888,18 +889,19 @@ voucher_data = [{
 def upload_survey(supabase):
     """Upload sample survey data to Supabase"""
     for survey in sample_survey:
+        # Now survey['survey_id'] contains the UUID generated when the script was loaded
         result = supabase.table("surveys").upsert(survey).execute()
         if hasattr(result, 'error') and result.error:
             print(f"Error uploading survey {survey['survey_id']}: {result.error}")
         else:
             print(f"Survey {survey['survey_id']} uploaded successfully!")
-    
-    for user in user_data:
-        result = supabase.table("users").upsert(user).execute()
-        if hasattr(result, 'error') and result.error:
-            print(f"Error uploading user {user['UID']}: {result.error}")
-        else:
-            print(f"User {user['UID']} uploaded successfully!")
+
+    # for user in user_data:
+    #     result = supabase.table("users").upsert(user).execute()
+    #     if hasattr(result, 'error') and result.error:
+    #         print(f"Error uploading user {user['UID']}: {result.error}")
+    #     else:
+    #         print(f"User {user['UID']} uploaded successfully!")
 
     for voucher in voucher_data:
         result = supabase.table("vouchers").upsert(voucher).execute()
@@ -910,16 +912,17 @@ def upload_survey(supabase):
 
 def clear_supabase(supabase):
     """Clear all data from Supabase tables"""
+    dummy_uuid = "00000000-0000-0000-0000-000000000000"
     try:
         # Clear surveys table
-        supabase.table("surveys").delete().neq("id", "dummy-id-for-safety").execute()
-        
+        supabase.table("surveys").delete().neq("survey_id", dummy_uuid).execute()
+
         # Clear users table
-        supabase.table("users").delete().neq("id", "dummy-id-for-safety").execute()
+        # supabase.table("users").delete().neq("id", "dummy-id-for-safety").execute()
 
         # Clear voucher table
-        supabase.table("vouchers").delete().neq("id", "dummy-id-for-safety").execute()
-        
+        supabase.table("vouchers").delete().neq("id", dummy_uuid).execute()
+
         print("Supabase tables cleared successfully!")
     except Exception as e:
         print(f"Error clearing Supabase tables: {e}")

@@ -70,7 +70,7 @@ def get_all_surveys():
 def get_specific_user_data(id):
     """Endpoint to retrieve the specific user's data"""
     try:
-        response = supabase.table('users').select("*").eq('id', id).execute()
+        response = supabase.table('users').select("*").eq('UID', id).execute()
         
         if not response.data:
             return jsonify({
@@ -95,7 +95,7 @@ def get_specific_user_data(id):
 def delete_specific_saved_question(id, num):
     """Endpoint to delete a particular saved question"""
     try:
-        response = supabase.table('users').select("*").eq('id', id).execute()
+        response = supabase.table('users').select("*").eq('UID', id).execute()
         
         if not response.data:
             return jsonify({
@@ -111,7 +111,7 @@ def delete_specific_saved_question(id, num):
 
         del saved_questions[index]
 
-        response = supabase.table('users').update({'saved_questions': saved_questions}).eq('id', id).execute()
+        response = supabase.table('users').update({'saved_questions': saved_questions}).eq('UID', id).execute()
         
         return jsonify({
             'success': True,
@@ -127,7 +127,7 @@ def delete_specific_saved_question(id, num):
 def get_saved_questions(id):
     """Endpoint to retrieve the specific user's saved questions"""
     try:
-        response = supabase.table('users').select("saved_questions").eq('id', id).execute()
+        response = supabase.table('users').select("saved_questions").eq('UID', id).execute()
         
         if not response.data:
             return jsonify({
@@ -158,7 +158,7 @@ def add_to_responded(id):
         response_text = request_data["answer"]
 
         # First check if the user exists
-        user_response = supabase.table('users').select("saved_questions").eq('id', id).execute()
+        user_response = supabase.table('users').select("saved_questions").eq('UID', id).execute()
         
         new_question = {
             'question': question,
@@ -169,7 +169,7 @@ def add_to_responded(id):
         if not user_response.data:
             # Create new user with the question
             supabase.table('users').insert({
-                'id': id,
+                'UID': id,
                 'saved_questions': [new_question]
             }).execute()
         else:
@@ -183,7 +183,7 @@ def add_to_responded(id):
             # Update user
             supabase.table('users').update({
                 'saved_questions': saved_questions
-            }).eq('id', id).execute()
+            }).eq('UID', id).execute()
 
         return jsonify({
             'success': True,
@@ -203,17 +203,18 @@ def add_answered_surveys(id):
         survey_id = request_data["survey_id"]
 
         # Check if user exists
-        user_response = supabase.table('users').select("answered_surveys").eq('id', id).execute()
+        user_response = supabase.table('users').select("answered_surveys").eq('UID', id).execute()
         
         new_survey = {
             'survey_id': survey_id,
             'timestamp': datetime.now(timezone.utc).isoformat()
         }
-
+# ASK ZHENG SENG IF THIS MAKES SENSE -- WHETHER TO CREATE A USER when answering without an account, 
+# probably still need a user id but dont need to a add to that column
         if not user_response.data:
             # Create new user with the answered survey
             supabase.table('users').insert({
-                'id': id,
+                'UID': id,
                 'answered_surveys': [new_survey]
             }).execute()
         else:
@@ -227,7 +228,7 @@ def add_answered_surveys(id):
             # Update user
             supabase.table('users').update({
                 'answered_surveys': answered_surveys
-            }).eq('id', id).execute()
+            }).eq('UID', id).execute()
 
         return jsonify({
             'success': True,
@@ -254,7 +255,7 @@ def remove_answered_surveys(id):
         survey_id = request_data["survey_id"]
         
         # Get user data
-        user_response = supabase.table('users').select("*").eq('id', id).execute()
+        user_response = supabase.table('users').select("*").eq('UID', id).execute()
         
         new_answered_survey = {
             'survey_id': survey_id,
@@ -264,7 +265,7 @@ def remove_answered_surveys(id):
         if not user_response.data:
             # Create new user with the answered survey
             supabase.table('users').insert({
-                'id': id,
+                'UID': id,
                 'answered_surveys': [new_answered_survey],
                 'to_be_answered_surveys': []
             }).execute()
@@ -287,7 +288,7 @@ def remove_answered_surveys(id):
             supabase.table('users').update({
                 'answered_surveys': answered_surveys,
                 'to_be_answered_surveys': updated_to_be_answered
-            }).eq('id', id).execute()
+            }).eq('UID', id).execute()
 
         return jsonify({
             'success': True,
@@ -304,7 +305,7 @@ def get_user_to_be_answered_surveys(id):
     """Endpoint to retrieve the surveys a specific user needs to answer"""
     try:
         # Get the user data
-        user_response = supabase.table('users').select("to_be_answered_surveys").eq('id', id).execute()
+        user_response = supabase.table('users').select("to_be_answered_surveys").eq('UID', id).execute()
 
         if not user_response.data:
             return jsonify({
@@ -328,7 +329,7 @@ def get_user_to_be_answered_surveys(id):
         surveys = []
         
         for survey_id in survey_ids:
-            survey_response = supabase.table('surveys').select("*").eq('id', survey_id).execute()
+            survey_response = supabase.table('surveys').select("*").eq('survey_id', survey_id).execute()
             if survey_response.data:
                 surveys.append(survey_response.data[0])
         
@@ -360,7 +361,7 @@ def change_points(id):
         question_id = request_data["question_id"]
 
         # Get the survey
-        survey_response = supabase.table('surveys').select("*").eq('id', survey_id).execute()
+        survey_response = supabase.table('surveys').select("*").eq('survey_id', survey_id).execute()
 
         if not survey_response.data:
             return jsonify({
@@ -384,7 +385,7 @@ def change_points(id):
             }), 404
 
         # Get user data
-        user_response = supabase.table('users').select("points").eq('id', id).execute()
+        user_response = supabase.table('users').select("points").eq('UID', id).execute()
 
         if not user_response.data:
             return jsonify({
@@ -400,7 +401,7 @@ def change_points(id):
         # Update user
         update_response = supabase.table('users').update({
             'points': new_points
-        }).eq('id', id).execute()
+        }).eq('UID', id).execute()
 
         return jsonify({
             'success': True,
@@ -451,14 +452,14 @@ def update_user_surveys():
         print("Running scheduled task to update user surveys...")
         
         # Get all available surveys
-        surveys_response = supabase.table('surveys').select("id").execute()
-        all_survey_ids = [survey["id"] for survey in surveys_response.data]
+        surveys_response = supabase.table('surveys').select("survey_id").execute()
+        all_survey_ids = [survey["survey_id"] for survey in surveys_response.data]
         
         # Get all users
-        users_response = supabase.table('users').select("id,answered_surveys").execute()
+        users_response = supabase.table('users').select("UID,answered_surveys").execute()
         
         for user in users_response.data:
-            user_id = user["id"]
+            user_id = user["UID"]
             
             # Get the list of surveys this user has already answered
             answered_surveys = []
@@ -471,7 +472,7 @@ def update_user_surveys():
             # Update the user's to_be_answered_surveys field
             supabase.table('users').update({
                 'to_be_answered_surveys': [{'survey_id': survey_id} for survey_id in to_be_answered]
-            }).eq('id', user_id).execute()
+            }).eq('UID', user_id).execute()
             
         print(f"Successfully updated to-be-answered surveys for {len(users_response.data)} users")
         
