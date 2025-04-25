@@ -12,11 +12,10 @@ import { useRouter } from "next/navigation";
 export default function Home() {
   const supabase = createClient();
   const router = useRouter();
-  // You can replace this with actual user ID from authentication
-  const userId = "user_data-001";
 
   // State for surveys and loading status
   const [toBeAnsweredSurveys, setToBeAnsweredSurveys] = useState([]);
+  const [user, setUser] = useState(null);
   const [userData, setUserData] = useState();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,12 +39,16 @@ export default function Home() {
 
   // Function to fetch surveys
   const fetchSurveys = async () => {
+    if (!user) return; // Don't fetch if no user
+
     try {
       setLoading(true);
-      const userData = await UserAPI.getUserData(userId);
+      // Use the authenticated user's ID instead of hardcoded value
+      const userData = await UserAPI.getUserData(user.id);
       setUserData(userData);
-      const data = await SurveyAPI.getUserToBeAnsweredSurveys(userId);
+      const data = await SurveyAPI.getUserToBeAnsweredSurveys(user.id);
       setToBeAnsweredSurveys(data);
+      console.log(data);
       return data;
     } catch (err) {
       console.error("Error fetching to-be-answered surveys:", err);
@@ -58,8 +61,10 @@ export default function Home() {
 
   // Initial fetch of surveys
   useEffect(() => {
-    fetchSurveys();
-  }, []);
+    if (user) {
+      fetchSurveys();
+    }
+  }, [user]);
 
   // Card animation variants
   const container = {
@@ -391,7 +396,10 @@ export default function Home() {
                 }}
                 className="h-full"
               >
-                <Link href={`/survey?id=${survey.id}`} className="block h-full">
+                <Link
+                  href={`/survey?id=${survey.survey_id}`}
+                  className="block h-full"
+                >
                   <div className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col">
                     {/* Card header with gradient */}
                     <div

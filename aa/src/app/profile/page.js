@@ -2,23 +2,44 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { UserAPI } from "../utils/SurveyAPI";
+import { createClient } from "./../utils/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function Profile() {
-  const userId = "user_data-001";
-
+  const supabase = createClient();
+  const router = useRouter();
   // State management
   const [savedSurveys, setSavedSurveys] = useState([]);
   const [userData, setUserData] = useState([]);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Check authentication and get user
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        // Redirect to login if not authenticated
+        router.push("/login");
+        return;
+      }
+      setUser(user);
+    };
+
+    getUser();
+  }, [router, supabase]);
+
   // Fetch saved questions using the API directly
   useEffect(() => {
+    if (!user) return; // Don't fetch if no user
+
     async function initializeUserData() {
       try {
         setLoading(true);
-        const userData = await UserAPI.getUserData(userId);
-        console.log(userData);
+        const userData = await UserAPI.getUserData(user.id);
         setUserData(userData);
         setSavedSurveys(userData.saved_questions);
       } catch (err) {
@@ -30,7 +51,7 @@ export default function Profile() {
     }
 
     initializeUserData();
-  }, [userId]);
+  }, [user]);
 
   // Function to delete a saved survey (if API endpoint exists)
   const deleteSavedSurvey = async (index) => {
@@ -39,7 +60,7 @@ export default function Profile() {
 
     try {
       setLoading(true);
-      const savedQuestions = await UserAPI.removeSavedQuestion(userId, index);
+      const savedQuestions = await UserAPI.removeSavedQuestion(user.id, index);
       setSavedSurveys(savedQuestions);
     } catch (err) {
       console.error("Error removing specific saved question", err);

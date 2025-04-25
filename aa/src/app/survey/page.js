@@ -7,23 +7,42 @@ import SurveyContainer from "./../components/survey/SurveyContainer";
 import Link from "next/link";
 import { SurveyAPI } from "./../utils/SurveyAPI";
 import ToggleSwitch from "./../components/common/ToggleSwitch";
+import { createClient } from "./../utils/supabase/client";
 
 export default function SurveyPage() {
   // Get the survey ID from URL params
   const searchParams = useSearchParams();
   const surveyId = searchParams.get("id");
   const router = useRouter();
-
-  // You can replace this with actual user ID from authentication
-  const userId = "user_data-001";
+  const supabase = createClient();
 
   // State for survey and loading status
   const [currentSurvey, setCurrentSurvey] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Check authentication and get user
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        // Redirect to login if not authenticated
+        router.push("/login");
+        return;
+      }
+      setUser(user);
+    };
+
+    getUser();
+  }, [router, supabase]);
+
   // Function to fetch the specific survey
   const fetchSurvey = async () => {
+    if (!user) return; // Don't fetch if no user
+
     if (!surveyId) {
       setError("No survey ID provided");
       setLoading(false);
@@ -33,10 +52,11 @@ export default function SurveyPage() {
     try {
       setLoading(true);
       // Get all surveys the user needs to answer
-      const surveys = await SurveyAPI.getUserToBeAnsweredSurveys(userId);
+      const surveys = await SurveyAPI.getUserToBeAnsweredSurveys(user.id);
+      console.log(surveys);
 
       // Find the specific survey by ID
-      const survey = surveys.find((s) => s.id === surveyId);
+      const survey = surveys.find((s) => s.survey_id === surveyId);
 
       if (!survey) {
         setError("Survey not found or not available for this user");
@@ -54,7 +74,7 @@ export default function SurveyPage() {
   // Initial fetch of the survey
   useEffect(() => {
     fetchSurvey();
-  }, [surveyId]);
+  }, [surveyId, user]);
 
   // Handle survey completion
   const handleSurveyComplete = () => {
@@ -69,7 +89,10 @@ export default function SurveyPage() {
         <div className="container mx-auto px-4 h-16 flex justify-between items-center">
           {/* Left Section */}
           <div className="flex-1 flex justify-start">
-            <Link href="/" className="font-semibold text-lg text-gray-800 flex items-center">
+            <Link
+              href="/"
+              className="font-semibold text-lg text-gray-800 flex items-center"
+            >
               <span className="text-indigo-600 mr-2 text-xl">●</span>
               AskAround
             </Link>
@@ -156,34 +179,52 @@ export default function SurveyPage() {
         {/* Loading state */}
         {loading && (
           <div className="flex flex-col justify-center items-center py-16">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ 
-                opacity: 1, 
+              animate={{
+                opacity: 1,
                 scale: 1,
-                transition: { 
-                  duration: 0.5, 
-                  repeat: Infinity, 
-                  repeatType: "reverse"
-                }
+                transition: {
+                  duration: 0.5,
+                  repeat: Infinity,
+                  repeatType: "reverse",
+                },
               }}
               className="w-16 h-16 mb-4"
             >
-              <svg 
-                viewBox="0 0 38 38" 
+              <svg
+                viewBox="0 0 38 38"
                 xmlns="http://www.w3.org/2000/svg"
                 className="text-indigo-500"
               >
                 <defs>
-                  <linearGradient x1="8.042%" y1="0%" x2="65.682%" y2="23.865%" id="prefix__a">
-                    <stop stopColor="currentColor" stopOpacity="0" offset="0%" />
-                    <stop stopColor="currentColor" stopOpacity=".631" offset="63.146%" />
+                  <linearGradient
+                    x1="8.042%"
+                    y1="0%"
+                    x2="65.682%"
+                    y2="23.865%"
+                    id="prefix__a"
+                  >
+                    <stop
+                      stopColor="currentColor"
+                      stopOpacity="0"
+                      offset="0%"
+                    />
+                    <stop
+                      stopColor="currentColor"
+                      stopOpacity=".631"
+                      offset="63.146%"
+                    />
                     <stop stopColor="currentColor" offset="100%" />
                   </linearGradient>
                 </defs>
                 <g fill="none" fillRule="evenodd">
                   <g transform="translate(1 1)">
-                    <path d="M36 18c0-9.94-8.06-18-18-18" stroke="url(#prefix__a)" strokeWidth="3">
+                    <path
+                      d="M36 18c0-9.94-8.06-18-18-18"
+                      stroke="url(#prefix__a)"
+                      strokeWidth="3"
+                    >
                       <animateTransform
                         attributeName="transform"
                         type="rotate"
@@ -207,13 +248,15 @@ export default function SurveyPage() {
                 </g>
               </svg>
             </motion.div>
-            <p className="text-indigo-500 font-medium">Loading your survey...</p>
+            <p className="text-indigo-500 font-medium">
+              Loading your survey...
+            </p>
           </div>
         )}
 
         {/* Error state */}
         {error && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -221,14 +264,24 @@ export default function SurveyPage() {
           >
             <div className="flex items-start">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                <svg
+                  className="h-5 w-5 text-red-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-lg font-medium text-red-700">Couldn't load survey</p>
+                <p className="text-lg font-medium text-red-700">
+                  Couldn't load survey
+                </p>
                 <p className="text-red-600 mt-1">{error}</p>
-                <Link 
+                <Link
                   href="/"
                   className="mt-3 inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
@@ -241,15 +294,26 @@ export default function SurveyPage() {
 
         {/* No survey available */}
         {!loading && !error && !currentSurvey && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
             className="bg-white rounded-2xl shadow-lg p-12 text-center max-w-2xl mx-auto"
           >
             <div className="inline-block mb-6 p-5 bg-indigo-50 rounded-full">
-              <svg className="w-12 h-12 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              <svg
+                className="w-12 h-12 text-indigo-500"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.5"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
               </svg>
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-3">
@@ -258,7 +322,7 @@ export default function SurveyPage() {
             <p className="text-gray-600 mb-6">
               The requested survey doesn't exist or isn't available.
             </p>
-            <Link 
+            <Link
               href="/"
               className="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
             >
@@ -269,7 +333,7 @@ export default function SurveyPage() {
 
         {/* Survey container */}
         {!loading && !error && currentSurvey && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -278,7 +342,7 @@ export default function SurveyPage() {
             <SurveyContainer
               key={currentSurvey.id}
               survey={currentSurvey}
-              userId={userId}
+              userId={user.id}
               onComplete={handleSurveyComplete}
             />
           </motion.div>
@@ -293,7 +357,9 @@ export default function SurveyPage() {
                 <span className="text-indigo-600 mr-2 text-xl">●</span>
                 AskAround
               </p>
-              <p className="text-gray-500 text-sm mt-1">Share your thoughts, shape our future</p>
+              <p className="text-gray-500 text-sm mt-1">
+                Share your thoughts, shape our future
+              </p>
             </div>
             <div className="text-gray-500 text-sm">
               © {new Date().getFullYear()} AskAround Survey Platform
