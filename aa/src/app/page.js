@@ -3,24 +3,48 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { SurveyAPI } from "./utils/SurveyAPI";
+import { SurveyAPI, UserAPI } from "./utils/SurveyAPI";
 import ToggleSwitch from "./components/common/ToggleSwitch";
+import { User, Award, ClipboardList } from "lucide-react";
+import { createClient } from "./utils/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const supabase = createClient();
+  const router = useRouter();
   // You can replace this with actual user ID from authentication
   const userId = "user_data-001";
 
   // State for surveys and loading status
   const [toBeAnsweredSurveys, setToBeAnsweredSurveys] = useState([]);
+  const [userData, setUserData] = useState();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Check authentication and get user
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        // Redirect to login if not authenticated
+        router.push("/login");
+        return;
+      }
+      setUser(user);
+    };
+
+    getUser();
+  }, [router, supabase]);
 
   // Function to fetch surveys
   const fetchSurveys = async () => {
     try {
       setLoading(true);
+      const userData = await UserAPI.getUserData(userId);
+      setUserData(userData);
       const data = await SurveyAPI.getUserToBeAnsweredSurveys(userId);
-      console.log("To-be-answered surveys:", data);
       setToBeAnsweredSurveys(data);
       return data;
     } catch (err) {
@@ -135,19 +159,48 @@ export default function Home() {
       </header>
 
       <main className="container mx-auto px-4 py-12">
-        {/* Welcome message */}
+        {/* User Info Card */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-12 text-center"
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="bg-white rounded-lg shadow-lg p-6 w-full md:w-3/4 lg:w-3/4 mx-auto mb-12 border border-gray-200"
         >
-          <h1 className="text-4xl font-bold mb-3 text-gray-900">
-            Ready to share your thoughts?
-          </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Complete surveys, earn points, and make your voice heard
-          </p>
+          <div className="flex flex-col items-center space-y-4">
+            <div className="bg-blue-100 p-3 rounded-full">
+              <User size={32} className="text-blue-600" />
+            </div>
+
+            <h2 className="text-2xl font-semibold text-gray-800">
+              {userData?.username || ""}
+            </h2>
+
+            <div className="grid grid-cols-2 gap-4 w-full">
+              <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                <Award size={24} className="text-yellow-500 mr-3" />
+                <div>
+                  <p className="text-sm text-gray-500">Points</p>
+                  <p className="text-lg font-bold">
+                    {userData
+                      ? userData.points !== undefined
+                        ? userData.points
+                        : 0
+                      : 0}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                <ClipboardList size={24} className="text-green-500 mr-3" />
+                <div>
+                  <p className="text-sm text-gray-500">Pending Surveys</p>
+                  <p className="text-lg font-bold">
+                    {userData?.to_be_answered_surveys?.length ?? 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         {/* Loading state */}

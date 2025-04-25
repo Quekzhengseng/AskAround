@@ -18,6 +18,7 @@ export default function Profile() {
       try {
         setLoading(true);
         const userData = await UserAPI.getUserData(userId);
+        console.log(userData);
         setUserData(userData);
         setSavedSurveys(userData.saved_questions);
       } catch (err) {
