@@ -87,7 +87,7 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
     try {
       const response = await UserAPI.changePoints(
         userId,
-        survey.id,
+        survey.survey_id,
         currentQuestion.id
       );
 

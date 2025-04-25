@@ -284,7 +284,7 @@ export const SurveyFlow = {
 
       // Filter surveys by status
       const answeredSurveys = allSurveys.filter((survey) =>
-        answeredSurveyIds.includes(survey.id)
+        answeredSurveyIds.includes(survey.id) 
       );
 
       const toBeAnsweredSurveys = allSurveys.filter((survey) =>
