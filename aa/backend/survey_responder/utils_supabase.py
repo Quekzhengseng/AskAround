@@ -14,7 +14,7 @@ QUESTION_TYPES = {
 
 # Sample survey data
 sample_survey = [{
-    "id": "sample-survey-001",
+    "survey_id": "sample-survey-001",
     "title": "Singapore Management University Toilet Survey",
     "description": "To survey toilets at SMU",
     "questions": [
@@ -73,7 +73,7 @@ sample_survey = [{
     ],
 }, 
 {
-    "id": "sample-survey-002",
+    "survey_id": "sample-survey-002",
     "title": "SMU Campus Facilities Feedback",
     "description": "Collecting feedback on various campus facilities at Singapore Management University",
     "questions": [
@@ -226,7 +226,7 @@ sample_survey = [{
         }
     ],
 },  {
-        "id": "sample-survey-003",
+        "survey_id": "sample-survey-003",
         "title": "Remote Work Preferences",
         "description": "Understanding how professionals adapt to remote work environments",
         "questions": [
@@ -284,7 +284,7 @@ sample_survey = [{
         ]
     },
     {
-        "id": "sample-survey-004",
+        "survey_id": "sample-survey-004",
         "title": "Digital Entertainment Habits",
         "description": "Survey about streaming services and digital entertainment preferences",
         "questions": [
@@ -349,7 +349,7 @@ sample_survey = [{
         ]
     },
     {
-        "id": "sample-survey-005",
+        "survey_id": "sample-survey-005",
         "title": "Sustainable Living Practices",
         "description": "Understanding individuals' sustainability habits and awareness",
         "questions": [
@@ -409,7 +409,7 @@ sample_survey = [{
         ]
     },
     {
-        "id": "sample-survey-006",
+        "survey_id": "sample-survey-006",
         "title": "Food Delivery Experience",
         "description": "Feedback on food delivery services and preferences",
         "questions": [
@@ -474,7 +474,7 @@ sample_survey = [{
         ]
     },
     {
-        "id": "sample-survey-007",
+        "survey_id": "sample-survey-007",
         "title": "Travel Preferences Post-Pandemic",
         "description": "Understanding how travel habits have changed after the pandemic",
         "questions": [
@@ -533,7 +533,7 @@ sample_survey = [{
         ]
     },
     {
-        "id": "sample-survey-008",
+        "survey_id": "sample-survey-008",
         "title": "Coffee Consumption Habits",
         "description": "Survey on coffee preferences and drinking habits",
         "questions": [
@@ -599,7 +599,7 @@ sample_survey = [{
         ]
     },
     {
-        "id": "sample-survey-009",
+        "survey_id": "sample-survey-009",
         "title": "Fitness Routines",
         "description": "Understanding personal fitness habits and preferences",
         "questions": [
@@ -667,7 +667,7 @@ sample_survey = [{
         ]
     },
     {
-        "id": "sample-survey-010",
+        "survey_id": "sample-survey-010",
         "title": "Reading Habits Survey",
         "description": "Understanding people's reading preferences and behaviors",
         "questions": [
@@ -734,7 +734,7 @@ sample_survey = [{
         ]
     },
     {
-        "id": "sample-survey-011",
+        "survey_id": "sample-survey-011",
         "title": "Smart Home Technology",
         "description": "Survey on smart home device adoption and preferences",
         "questions": [
@@ -794,7 +794,7 @@ sample_survey = [{
         ]
     },
     {
-        "id": "sample-survey-012",
+        "survey_id": "sample-survey-012",
         "title": "Personal Finance Management",
         "description": "Understanding how people manage their personal finances",
         "questions": [
@@ -861,7 +861,7 @@ sample_survey = [{
 ]
 
 user_data = [{
-    "id": "user_data-001",
+    "UID": "user_data-001",
     "username" : "user-001",
     "Surveys": [],
     "points": 0,
@@ -890,16 +890,16 @@ def upload_survey(supabase):
     for survey in sample_survey:
         result = supabase.table("surveys").upsert(survey).execute()
         if hasattr(result, 'error') and result.error:
-            print(f"Error uploading survey {survey['id']}: {result.error}")
+            print(f"Error uploading survey {survey['survey_id']}: {result.error}")
         else:
-            print(f"Survey {survey['id']} uploaded successfully!")
+            print(f"Survey {survey['survey_id']} uploaded successfully!")
     
     for user in user_data:
         result = supabase.table("users").upsert(user).execute()
         if hasattr(result, 'error') and result.error:
-            print(f"Error uploading user {user['id']}: {result.error}")
+            print(f"Error uploading user {user['UID']}: {result.error}")
         else:
-            print(f"User {user['id']} uploaded successfully!")
+            print(f"User {user['UID']} uploaded successfully!")
 
     for voucher in voucher_data:
         result = supabase.table("vouchers").upsert(voucher).execute()
