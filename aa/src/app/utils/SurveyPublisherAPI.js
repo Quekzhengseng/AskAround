@@ -1,5 +1,5 @@
 // utils/surveyPublisherAPI.js
-const PUBLISHER_API_URL = "http://localhost:5002";
+const PUBLISHER_API_URL = "http://localhost:5004";
 
 /**
  * Simplified helper function to handle API requests for the publisher service
