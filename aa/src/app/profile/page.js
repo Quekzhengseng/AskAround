@@ -1,20 +1,28 @@
+// app/profile/page.jsx
 "use client";
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 import { UserAPI } from "../utils/SurveyAPI";
 import { createClient } from "./../utils/supabase/client";
 import { useRouter } from "next/navigation";
+import Sidebar from "./../components/profile/Sidebar";
+import ProfileTab from "./../components/profile/ProfileTab";
+import QuestionsTab from "./../components/profile/QuestionsTab";
+import VouchersTab from "./../components/profile/VouchersTab";
+import BackButton from "./../components/profile/BackButton";
+import LoadingSpinner from "./../components/profile/LoadingSpinner";
+import ErrorMessage from "./../components/profile/ErrorMessage";
 
 export default function Profile() {
   const supabase = createClient();
   const router = useRouter();
+
   // State management
-  const [savedSurveys, setSavedSurveys] = useState([]);
-  const [userData, setUserData] = useState([]);
+  const [userData, setUserData] = useState({});
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [activeTab, setActiveTab] = useState("profile");
 
   // Check authentication and get user
   useEffect(() => {
@@ -23,7 +31,6 @@ export default function Profile() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        // Redirect to login if not authenticated
         router.push("/login");
         return;
       }
@@ -33,16 +40,15 @@ export default function Profile() {
     getUser();
   }, [router, supabase]);
 
-  // Fetch saved questions using the API directly
+  // Fetch user data
   useEffect(() => {
-    if (!user) return; // Don't fetch if no user
+    if (!user) return;
 
     async function initializeUserData() {
       try {
         setLoading(true);
         const userData = await UserAPI.getUserData(user.id);
         setUserData(userData);
-        setSavedSurveys(userData.saved_questions);
       } catch (err) {
         console.error("Error fetching initial user data:", err);
         setError(err.message);
@@ -53,23 +59,6 @@ export default function Profile() {
 
     initializeUserData();
   }, [user]);
-
-  // Function to delete a saved survey (if API endpoint exists)
-  const deleteSavedSurvey = async (index) => {
-    // This would need a proper API endpoint to implement
-    console.log("Delete survey at index:", index);
-
-    try {
-      setLoading(true);
-      const savedQuestions = await UserAPI.removeSavedQuestion(user.id, index);
-      setSavedSurveys(savedQuestions);
-    } catch (err) {
-      console.error("Error removing specific saved question", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Function to handle logout
   const handleLogout = async () => {
@@ -83,142 +72,46 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-135/oklch from-white via-purple-50 to-blue-100/40 py-8">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Profile</h1>
-          <div className="flex gap-3">
-            <button
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors duration-300"
-            >
-              {isLoggingOut ? (
-                <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin mr-2"></div>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V7.414l-5-5H3zm7 5a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L12 13.586V8a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+    <div className="min-h-screen bg-gray-50 flex">
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        userData={userData}
+        user={user}
+        loading={loading}
+        handleLogout={handleLogout}
+        isLoggingOut={isLoggingOut}
+      />
+
+      <main className="ml-64 flex-1 p-8">
+        <div className="max-w-5xl mx-auto">
+          <BackButton />
+
+          <h1 className="text-2xl font-bold text-gray-800 mb-6">
+            {activeTab === "profile" && "Profile Information"}
+            {activeTab === "questions" && "My Questions"}
+            {activeTab === "vouchers" && "My Vouchers"}
+          </h1>
+
+          {loading ? (
+            <LoadingSpinner />
+          ) : error ? (
+            <ErrorMessage message={error} />
+          ) : (
+            <>
+              {activeTab === "profile" && (
+                <ProfileTab userData={userData} user={user} />
               )}
-              {isLoggingOut ? "Signing out..." : "Sign Out"}
-            </button>
-            <Link
-              href="/"
-              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition-colors duration-300"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Back to Survey
-            </Link>
-          </div>
+
+              {activeTab === "questions" && (
+                <QuestionsTab userData={userData} userId={user.id} />
+              )}
+
+              {activeTab === "vouchers" && <VouchersTab userData={userData} />}
+            </>
+          )}
         </div>
-
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-4 border-purple-400 rounded-full border-t-transparent animate-spin"></div>
-          </div>
-        ) : error ? (
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
-            <p>Error loading profile: {error}</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* First Column - UserData */}
-            <div className="p-4">
-              <div className="bg-white rounded-xl shadow-md p-4">
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                  User Info
-                </h2>
-                <p className="text-gray-600">
-                  <span className="font-medium">Username:</span>{" "}
-                  {userData.username}
-                </p>
-                <p className="text-gray-600">
-                  <span className="font-medium">Points:</span> {userData.points}
-                </p>
-                <p className="text-gray-600">
-                  <span className="font-medium">Email:</span> {user?.email}
-                </p>
-              </div>
-            </div>
-
-            {/* Second Column - Your Survey Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {savedSurveys.map((item, index) => (
-                <div
-                  key={index}
-                  className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
-                >
-                  <div className="bg-purple-100 px-4 py-3 flex justify-between items-center">
-                    <h3 className="font-medium text-purple-800">
-                      Survey #{index + 1}
-                    </h3>
-                    <button
-                      onClick={() => deleteSavedSurvey(index)}
-                      className="text-red-500 hover:text-red-700 transition-colors duration-300"
-                      aria-label="Delete survey"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="p-4">
-                    <div className="mb-4">
-                      <h4 className="text-sm font-medium text-gray-500 mb-1">
-                        Question:
-                      </h4>
-                      <p className="text-gray-800">{item.question}</p>
-                    </div>
-                    <div className="mb-4">
-                      <h4 className="text-sm font-medium text-gray-500 mb-1">
-                        Answer:
-                      </h4>
-                      <p className="text-gray-800">{item.response}</p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 mb-1">
-                        Completed On:
-                      </h4>
-                      <p className="text-gray-800">
-                        {new Date(item.timestamp).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      </main>
     </div>
   );
 }
