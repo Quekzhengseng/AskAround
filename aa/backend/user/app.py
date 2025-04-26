@@ -241,69 +241,9 @@ def add_answered_surveys(id):
             'error': str(e)
         }), 500
 
-@app.route('/user/move/<id>', methods=['PUT'])
-def remove_answered_surveys(id):
-    """Endpoint to move a survey from to-be-answered to answered surveys for a specific user"""
-    try:
-        request_data = request.get_json()
-
-        if not request_data or 'survey_id' not in request_data:
-            return jsonify({
-                'success': False,
-                'error': 'Missing required field: survey_id'
-            }), 400
-
-        survey_id = request_data["survey_id"]
-        
-        # Get user data
-        user_response = supabase.table('users').select("*").eq('UID', id).execute()
-        
-        new_answered_survey = {
-            'survey_id': survey_id,
-            'timestamp': datetime.now(timezone.utc).isoformat()
-        }
-
-        if not user_response.data:
-            # Create new user with the answered survey
-            supabase.table('users').insert({
-                'UID': id,
-                'answered_surveys': [new_answered_survey],
-                'to_be_answered_surveys': []
-            }).execute()
-        else:
-            # Get current data
-            user_data = user_response.data[0]
-            
-            # Update answered surveys array
-            answered_surveys = user_data.get('answered_surveys', [])
-            answered_surveys.append(new_answered_survey)
-            
-            # Update to_be_answered_surveys array
-            to_be_answered = user_data.get('to_be_answered_surveys', [])
-            updated_to_be_answered = [
-                survey for survey in to_be_answered 
-                if survey.get('survey_id') != survey_id
-            ]
-            
-            # Update user
-            supabase.table('users').update({
-                'answered_surveys': answered_surveys,
-                'to_be_answered_surveys': updated_to_be_answered
-            }).eq('UID', id).execute()
-
-        return jsonify({
-            'success': True,
-            'message': f"Survey {survey_id} marked as answered for user {id}"
-        }), 200
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
 @app.route('/user/next/<id>', methods=['PUT'])
 def change_points(id):
-    """Endpoint to change the points of the user based on the question answered"""
+    """Endpoint to change the points of the user based on the question or survey completion"""
     try:
         request_data = request.get_json()
 
@@ -327,43 +267,75 @@ def change_points(id):
             
         survey_data = survey_response.data[0]
         
-        # Find the question and get points
-        points = None
-        for question in survey_data.get('questions', []):
-            if question.get('id') == question_id:
-                points = question.get('points')
-                break
-                
-        if points is None:
-            return jsonify({
-                'success': False,
-                'error': f"Question with id {question_id} not found in survey {survey_id}."
-            }), 404
-
-        # Get user data
-        user_response = supabase.table('users').select("points").eq('UID', id).execute()
-
-        if not user_response.data:
-            return jsonify({
-                'success': False,
-                'error': f"User with id {id} not found."
-            }), 404
+        # Check if this is a survey completion request (special case)
+        if question_id == "survey_completion":
+            # Calculate total points from all questions in the survey
+            total_points = sum(question.get('points', 0) for question in survey_data.get('questions', []))
             
-        # Update points
-        user_data = user_response.data[0]
-        current_points = user_data.get("points", 0)
-        new_points = current_points + points
-        
-        # Update user
-        update_response = supabase.table('users').update({
-            'points': new_points
-        }).eq('UID', id).execute()
+            # Get user data
+            user_response = supabase.table('users').select("points").eq('UID', id).execute()
 
-        return jsonify({
-            'success': True,
-            'message': f"User {id} updated with points",
-            'points': new_points
-        }), 200
+            if not user_response.data:
+                return jsonify({
+                    'success': False,
+                    'error': f"User with id {id} not found."
+                }), 404
+                
+            # Update points
+            user_data = user_response.data[0]
+            current_points = user_data.get("points", 0)
+            new_points = current_points + total_points
+            
+            # Update user
+            update_response = supabase.table('users').update({
+                'points': new_points
+            }).eq('UID', id).execute()
+
+            return jsonify({
+                'success': True,
+                'message': f"User {id} awarded {total_points} points for completing survey",
+                'points': new_points
+            }), 200
+        
+        # Original behavior for individual questions
+        else:
+            # Find the question and get points
+            points = None
+            for question in survey_data.get('questions', []):
+                if question.get('id') == question_id:
+                    points = question.get('points')
+                    break
+                    
+            if points is None:
+                return jsonify({
+                    'success': False,
+                    'error': f"Question with id {question_id} not found in survey {survey_id}."
+                }), 404
+
+            # Get user data
+            user_response = supabase.table('users').select("points").eq('UID', id).execute()
+
+            if not user_response.data:
+                return jsonify({
+                    'success': False,
+                    'error': f"User with id {id} not found."
+                }), 404
+                
+            # Update points
+            user_data = user_response.data[0]
+            current_points = user_data.get("points", 0)
+            new_points = current_points + points
+            
+            # Update user
+            update_response = supabase.table('users').update({
+                'points': new_points
+            }).eq('UID', id).execute()
+
+            return jsonify({
+                'success': True,
+                'message': f"User {id} updated with points",
+                'points': new_points
+            }), 200
     except Exception as e:
         return jsonify({
             'success': False,

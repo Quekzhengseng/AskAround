@@ -16,7 +16,6 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
   const [error, setError] = useState(null);
   const [surveyCompleted, setSurveyCompleted] = useState(false);
   const [points, setPoints] = useState(0);
-  const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
 
   // Fetch initial user data to get starting points
@@ -27,13 +26,8 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
       try {
         setIsLoadingInitialData(true);
         const userData = await UserAPI.getUserData(userId);
-
-        if (userData && typeof userData.points === "number") {
-          setPoints(userData.points);
-        }
       } catch (err) {
         console.error("Error fetching initial user data:", err);
-        // Don't set error state as this isn't critical for the survey to function
       } finally {
         setIsLoadingInitialData(false);
       }
@@ -68,40 +62,12 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
       await saveCurrentAnswer();
     }
 
-    // Show the points animation immediately
-    if (currentQuestion.points) {
-      setShowPointsAnimation(true);
-    }
-
-    // Add points after answering a question
-    await addPoints();
-
     if (isLastQuestion) {
       await submitSurvey();
     } else {
       setCurrentQuestionIndex((prev) => prev + 1);
     }
   };
-
-  const addPoints = async () => {
-    try {
-      const response = await UserAPI.changePoints(
-        userId,
-        survey.survey_id,
-        currentQuestion.id
-      );
-
-      if (response && typeof response.points === "number") {
-        setPoints(response.points);
-      }
-    } catch (err) {
-      console.error("Error changing points:", err);
-    }
-  };
-
-  useEffect(() => {
-    console.log("Updated points:", points);
-  }, [points]);
 
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
@@ -148,10 +114,7 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
       if (hasAnswer && currentQuestion.addable) {
         await saveCurrentAnswer();
       }
-
-      // Mark the survey as completed in the user's profile
-      await UserAPI.moveToAnsweredSurveys(userId, survey.id);
-
+  
       // Show achievement animation
       setAchievementCount((prev) => prev + 1);
       setShowAchievement(true);
@@ -182,17 +145,6 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
     }
   }, [showAchievement]);
 
-  // Hide points animation after it completes
-  useEffect(() => {
-    if (showPointsAnimation) {
-      const timer = setTimeout(() => {
-        setShowPointsAnimation(false);
-      }, 1500); // Animation duration
-
-      return () => clearTimeout(timer);
-    }
-  }, [showPointsAnimation]);
-
   // Hide add notification after it completes
   useEffect(() => {
     if (showAddNotification) {
@@ -206,7 +158,7 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 @container rounded-xl relative">
-      {/* Points counter with animation */}
+      {/* Points Showcase*/}
       <div className="absolute top-4 right-4 bg-green-100 text-green-700 font-semibold px-4 py-2 rounded-lg shadow">
         {isLoadingInitialData ? (
           <span className="flex items-center">
@@ -233,23 +185,11 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
             </svg>
           </span>
         ) : (
-          <span>Points: {points}</span>
+          <span>
+            {survey.questions.reduce((total, q) => total + q.points, 0)}
+            &nbsp;points
+          </span>
         )}
-
-        {/* Points animation - positioned absolutely so it doesn't affect layout */}
-        <AnimatePresence>
-          {showPointsAnimation && currentQuestion.points > 0 && (
-            <motion.div
-              className="absolute top-0 left-full ml-2 text-green-600 font-bold text-lg"
-              initial={{ opacity: 0, y: 0, scale: 0.8 }}
-              animate={{ opacity: 1, y: -15, scale: 1.2 }}
-              exit={{ opacity: 0, y: -30, scale: 1 }}
-              transition={{ duration: 1.2, ease: "easeOut" }}
-            >
-              +{currentQuestion.points}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
       <h2 className="text-2xl font-bold mb-4">{survey.title}</h2>
 

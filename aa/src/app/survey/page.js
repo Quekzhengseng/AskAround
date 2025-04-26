@@ -5,9 +5,9 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import SurveyContainer from "./../components/survey/SurveyContainer";
 import Link from "next/link";
-import { SurveyAPI } from "./../utils/SurveyAPI";
-import ToggleSwitch from "./../components/common/ToggleSwitch";
+import { SurveyAPI, UserAPI } from "./../utils/SurveyAPI";
 import { createClient } from "./../utils/supabase/client";
+import SurveyCompletionModal from "./../components/survey/SurveyCompletionModal";
 
 export default function SurveyPage() {
   // Get the survey ID from URL params
@@ -21,6 +21,8 @@ export default function SurveyPage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [initialUserPoints, setInitialUserPoints] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Check authentication and get user
   useEffect(() => {
@@ -53,15 +55,21 @@ export default function SurveyPage() {
       setLoading(true);
       // Get all surveys the user needs to answer
       const surveys = await SurveyAPI.getUserToBeAnsweredSurveys(user.id);
-      console.log(surveys);
 
       // Find the specific survey by ID
       const survey = surveys.find((s) => s.survey_id === surveyId);
+
+      // Also get user's current points
+      const userData = await UserAPI.getUserData(user.id);
+      if (userData && typeof userData.points === "number") {
+        setInitialUserPoints(userData.points);
+      }
 
       if (!survey) {
         setError("Survey not found or not available for this user");
       } else {
         setCurrentSurvey(survey);
+        console.log(survey);
       }
     } catch (err) {
       console.error("Error fetching survey:", err);
@@ -76,10 +84,38 @@ export default function SurveyPage() {
     fetchSurvey();
   }, [surveyId, user]);
 
-  // Handle survey completion
-  const handleSurveyComplete = () => {
-    // Navigate back to the survey list
-    router.push("/");
+  const handleSurveyComplete = async () => {
+    if (!user || !currentSurvey) return;
+
+    try {
+      // Set loading state
+      setIsSubmitting(true);
+
+      // Process one final API call to add all points
+      // We'll use a special question_id to indicate this is for the whole survey
+      const response = await UserAPI.changePoints(
+        user.id,
+        currentSurvey.survey_id,
+        "survey_completion"
+      );
+
+      // Mark the survey as completed in the user's profile
+      await UserAPI.addAnsweredSurvey(user.id, currentSurvey.survey_id);
+
+      // Show completion animation or feedback here
+      // setShowCompletionAnimation(true);
+
+      // Delay navigation to allow seeing the completion state
+      setTimeout(() => {
+        // Navigate back to the survey list
+        router.push("/");
+      }, 3000);
+    } catch (err) {
+      console.error("Error completing survey:", err);
+      setError("Failed to submit survey. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -99,12 +135,6 @@ export default function SurveyPage() {
           </div>
           {/* Right Section */}
           <div className="flex-1 flex justify-end items-center gap-2">
-            <ToggleSwitch
-              leftOption="Do Surveys"
-              rightOption="Create Survey"
-              leftPath="/"
-              rightPath="/curator"
-            />
             {/* Profile Link */}
             <Link
               href="/profile"

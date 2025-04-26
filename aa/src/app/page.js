@@ -48,7 +48,7 @@ export default function Home() {
       setUserData(userData);
       const data = await SurveyAPI.getUserToBeAnsweredSurveys(user.id);
       setToBeAnsweredSurveys(data);
-      console.log(data);
+      // console.log(data);
       return data;
     } catch (err) {
       console.error("Error fetching to-be-answered surveys:", err);
@@ -388,7 +388,7 @@ export default function Home() {
           >
             {toBeAnsweredSurveys.map((survey, index) => (
               <motion.div
-                key={survey.id}
+                key={survey.survey_id}
                 variants={item}
                 whileHover={{
                   y: -8,
@@ -440,6 +440,14 @@ export default function Home() {
                             />
                           </svg>
                           <span>{survey.questions.length} questions</span>
+                          <span>&nbsp;/&nbsp;</span>
+                          <span>
+                            {survey.questions.reduce(
+                              (total, q) => total + q.points,
+                              0
+                            )}
+                            &nbsp;points
+                          </span>
                         </div>
                         <div className="text-gray-500 text-sm">
                           {estimateTime(survey.questions.length)}

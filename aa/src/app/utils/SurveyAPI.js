@@ -68,22 +68,22 @@ export const SurveyAPI = {
     return await apiRequest(SURVEY_SERVICE_URL, "/health");
   },
 
-  /**
-   * Complete a survey by marking it as answered and updating user data
-   * @param {string} userId - The user ID
-   * @param {string} surveyId - The survey ID
-   * @returns {boolean} - Success status
-   */
-  completeSurvey: async (userId, surveyId) => {
-    try {
-      // Call the API to move the survey
-      await UserAPI.moveToAnsweredSurveys(userId, surveyId);
-      return true;
-    } catch (error) {
-      console.error("Error completing survey:", error);
-      return false;
-    }
-  },
+  // /**
+  //  * Complete a survey by marking it as answered and updating user data
+  //  * @param {string} userId - The user ID
+  //  * @param {string} surveyId - The survey ID
+  //  * @returns {boolean} - Success status
+  //  */
+  // completeSurvey: async (userId, surveyId) => {
+  //   try {
+  //     // Call the API to move the survey
+  //     await UserAPI.moveToAnsweredSurveys(userId, surveyId);
+  //     return true;
+  //   } catch (error) {
+  //     console.error("Error completing survey:", error);
+  //     return false;
+  //   }
+  // },
 };
 
 /**
@@ -157,15 +157,6 @@ export const UserAPI = {
   },
 
   /**
-   * Move a survey from to-be-answered to answered list
-   */
-  moveToAnsweredSurveys: async (userId, surveyId) => {
-    return await apiRequest(USER_SERVICE_URL, `/user/move/${userId}`, "PUT", {
-      survey_id: surveyId,
-    });
-  },
-
-  /**
    * Answer a question and update user points in one operation
    * @param {string} userId - The user ID
    * @param {string} surveyId - The survey ID
@@ -217,47 +208,47 @@ export const VoucherAPI = {
  * Combined functionality for survey flows
  */
 export const SurveyFlow = {
-  /**
-   * Process a complete survey submission
-   * @param {string} userId - The user ID
-   * @param {string} surveyId - The survey ID
-   * @param {Array} responses - Array of question responses
-   * @returns {Object} - Status and final points
-   */
-  submitSurvey: async (userId, surveyId, responses) => {
-    try {
-      let currentPoints = 0;
+  // /**
+  //  * Process a complete survey submission
+  //  * @param {string} userId - The user ID
+  //  * @param {string} surveyId - The survey ID
+  //  * @param {Array} responses - Array of question responses
+  //  * @returns {Object} - Status and final points
+  //  */
+  // submitSurvey: async (userId, surveyId, responses) => {
+  //   try {
+  //     let currentPoints = 0;
 
-      // Process each question response
-      for (const response of responses) {
-        const { questionId, question, answer } = response;
+  //     // Process each question response
+  //     for (const response of responses) {
+  //       const { questionId, question, answer } = response;
 
-        // Save the response and update points
-        await UserAPI.addQuestionResponse(userId, question, answer);
-        const pointsResult = await UserAPI.changePoints(
-          userId,
-          surveyId,
-          questionId
-        );
-        currentPoints = pointsResult.points;
-      }
+  //       // Save the response and update points
+  //       await UserAPI.addQuestionResponse(userId, question, answer);
+  //       const pointsResult = await UserAPI.changePoints(
+  //         userId,
+  //         surveyId,
+  //         questionId
+  //       );
+  //       currentPoints = pointsResult.points;
+  //     }
 
-      // Mark the survey as complete
-      await UserAPI.moveToAnsweredSurveys(userId, surveyId);
+  //     // Mark the survey as complete
+  //     await UserAPI.moveToAnsweredSurveys(userId, surveyId);
 
-      return {
-        success: true,
-        surveyId,
-        finalPoints: currentPoints,
-      };
-    } catch (error) {
-      console.error("Error submitting complete survey:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  },
+  //     return {
+  //       success: true,
+  //       surveyId,
+  //       finalPoints: currentPoints,
+  //     };
+  //   } catch (error) {
+  //     console.error("Error submitting complete survey:", error);
+  //     return {
+  //       success: false,
+  //       error: error.message,
+  //     };
+  //   }
+  // },
 
   /**
    * Get all available surveys and filter them by status
@@ -284,7 +275,7 @@ export const SurveyFlow = {
 
       // Filter surveys by status
       const answeredSurveys = allSurveys.filter((survey) =>
-        answeredSurveyIds.includes(survey.id) 
+        answeredSurveyIds.includes(survey.id)
       );
 
       const toBeAnsweredSurveys = allSurveys.filter((survey) =>
