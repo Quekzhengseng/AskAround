@@ -22,7 +22,7 @@ export default function SurveyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [initialUserPoints, setInitialUserPoints] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
 
   // Check authentication and get user
   useEffect(() => {
@@ -88,12 +88,11 @@ export default function SurveyPage() {
     if (!user || !currentSurvey) return;
 
     try {
-      // Set loading state
-      setIsSubmitting(true);
+      // Show the completion modal first
+      setShowCompletionModal(true);
 
-      // Process one final API call to add all points
-      // We'll use a special question_id to indicate this is for the whole survey
-      const response = await UserAPI.changePoints(
+      // Process API call to add all points
+      await UserAPI.changePoints(
         user.id,
         currentSurvey.survey_id,
         "survey_completion"
@@ -102,19 +101,14 @@ export default function SurveyPage() {
       // Mark the survey as completed in the user's profile
       await UserAPI.addAnsweredSurvey(user.id, currentSurvey.survey_id);
 
-      // Show completion animation or feedback here
-      // setShowCompletionAnimation(true);
-
-      // Delay navigation to allow seeing the completion state
-      setTimeout(() => {
-        // Navigate back to the survey list
-        router.push("/");
-      }, 3000);
+      // The modal will automatically redirect back to the main page after animation
+      // No need to manually redirect here
     } catch (err) {
       console.error("Error completing survey:", err);
       setError("Failed to submit survey. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+
+      // Hide the modal if there was an error
+      setShowCompletionModal(false);
     }
   };
 
@@ -397,6 +391,17 @@ export default function SurveyPage() {
           </div>
         </div>
       </footer>
+      {/* Survey Completion Modal */}
+      <SurveyCompletionModal
+        isOpen={showCompletionModal}
+        onClose={() => {
+          setShowCompletionModal(false);
+          router.push("/");
+        }}
+        survey={currentSurvey}
+        userId={user?.id}
+        initialPoints={initialUserPoints}
+      />
     </div>
   );
 }

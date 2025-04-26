@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { UserAPI } from "./../../utils/SurveyAPI";
 
 const SurveyCompletionModal = ({
   isOpen,
@@ -30,12 +29,6 @@ const SurveyCompletionModal = ({
       setTimeout(() => {
         setShowConfetti(true);
       }, 800);
-
-      // Send API requests to update points and mark survey as complete
-      if (userId && survey?.survey_id) {
-        UserAPI.changePoints(userId, survey.survey_id, "survey_completion");
-        UserAPI.moveToAnsweredSurveys(userId, survey.survey_id);
-      }
 
       // Close modal after animation completes
       setTimeout(() => {
