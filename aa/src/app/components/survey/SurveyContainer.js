@@ -8,6 +8,7 @@ import { UserAPI } from "../../utils/SurveyAPI";
 
 const SurveyContainer = ({ survey, userId, onComplete }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [showProgressPulse, setShowProgressPulse] = useState(false);
   const [answers, setAnswers] = useState({});
   const [achievementCount, setAchievementCount] = useState(0);
   const [showAchievement, setShowAchievement] = useState(false);
@@ -57,6 +58,14 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
   const hasAnswer = Boolean(answers[currentQuestion.id]);
 
   const handleNext = async () => {
+    // Show pulse effect when moving to next question
+    setShowProgressPulse(true);
+
+    // Clear pulse effect after animation completes
+    setTimeout(() => {
+      setShowProgressPulse(false);
+    }, 800); // Match this duration with the pulse animation duration
+
     // Save the current answer to the API
     if (hasAnswer && currentQuestion.addable) {
       await saveCurrentAnswer();
@@ -114,7 +123,7 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
       if (hasAnswer && currentQuestion.addable) {
         await saveCurrentAnswer();
       }
-  
+
       // Show achievement animation
       setAchievementCount((prev) => prev + 1);
       setShowAchievement(true);
@@ -197,6 +206,7 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
         <ProgressBar
           currentQuestion={currentQuestionIndex + 1}
           totalQuestions={survey.questions.length}
+          showPulse={showProgressPulse}
         />
 
         {/* Achievement animation */}
