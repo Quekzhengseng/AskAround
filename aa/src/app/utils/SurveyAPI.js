@@ -4,6 +4,7 @@
 const SURVEY_SERVICE_URL = "http://localhost:5000";
 const USER_SERVICE_URL = "http://localhost:5001";
 const VOUCHER_SERVICE_URL = "http://localhost:5002";
+const AUTHENTICATION_SERVICE_URL = "http://localhost:5005";
 
 /**
  * Helper function to handle API requests with dynamic base URL
@@ -90,6 +91,19 @@ export const SurveyAPI = {
  * User-related API functions
  */
 export const UserAPI = {
+  /**
+   * Verify JWT Token
+   */
+  verifyToken: async (token) => {
+    const response = await apiRequest(
+      AUTHENTICATION_SERVICE_URL,
+      "/verify",
+      "POST",
+      { token }
+    );
+    return response;
+  },
+
   /**
    * Get user data
    */
@@ -214,7 +228,6 @@ export const VoucherAPI = {
     return response.data;
   },
 };
-
 
 export default {
   SurveyAPI,

@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from supabase import create_client
 from dotenv import load_dotenv
 
+
 # Load environment variables
 load_dotenv()
 

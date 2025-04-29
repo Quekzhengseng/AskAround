@@ -4,7 +4,7 @@ import Link from "next/link";
 import { UserAPI } from "../../utils/SurveyAPI";
 import LoadingSpinner from "./LoadingSpinner";
 
-export default function PastSurveyTab({ userData, userId }) {
+export default function PastSurveyTab({ userData }) {
   const [answeredSurveys, setansweredSurveys] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -14,7 +14,7 @@ export default function PastSurveyTab({ userData, userId }) {
     const fetchAnsweredSurveys = async () => {
       try {
         const answeredSurveys = await UserAPI.getUserToBeAnsweredSurveys(
-          userId
+          userData.UID
         );
         console.log(answeredSurveys);
         if (userData && userData.answered_surveys) {
@@ -27,7 +27,7 @@ export default function PastSurveyTab({ userData, userId }) {
     };
 
     fetchAnsweredSurveys();
-  }, [userData, userId]);
+  }, [userData]);
 
   if (loading) {
     return <LoadingSpinner />;

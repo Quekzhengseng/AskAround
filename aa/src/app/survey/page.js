@@ -5,8 +5,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import SurveyContainer from "./../components/survey/SurveyContainer";
 import Link from "next/link";
+import { UseAuth } from "./../utils/hooks/UseAuth";
 import { SurveyAPI, UserAPI } from "./../utils/SurveyAPI";
-import { createClient } from "./../utils/supabase/client";
 import SurveyCompletionModal from "./../components/survey/SurveyCompletionModal";
 
 export default function SurveyPage() {
@@ -14,36 +14,18 @@ export default function SurveyPage() {
   const searchParams = useSearchParams();
   const surveyId = searchParams.get("id");
   const router = useRouter();
-  const supabase = createClient();
 
   // State for survey and loading status
   const [currentSurvey, setCurrentSurvey] = useState(null);
-  const [user, setUser] = useState(null);
+  const { userData } = UseAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [initialUserPoints, setInitialUserPoints] = useState(0);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
 
-  // Check authentication and get user
-  useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        // Redirect to login if not authenticated
-        router.push("/login");
-        return;
-      }
-      setUser(user);
-    };
-
-    getUser();
-  }, [router, supabase]);
-
   // Function to fetch the specific survey
   const fetchSurvey = async () => {
-    if (!user) return; // Don't fetch if no user
+    if (!userData) return; // Don't fetch if no user
 
     if (!surveyId) {
       setError("No survey ID provided");
@@ -54,13 +36,11 @@ export default function SurveyPage() {
     try {
       setLoading(true);
       // Get all surveys the user needs to answer
-      const surveys = await SurveyAPI.getUserToBeAnsweredSurveys(user.id);
+      const surveys = await SurveyAPI.getUserToBeAnsweredSurveys(userData.UID);
 
       // Find the specific survey by ID
       const survey = surveys.find((s) => s.survey_id === surveyId);
 
-      // Also get user's current points
-      const userData = await UserAPI.getUserData(user.id);
       if (userData && typeof userData.points === "number") {
         setInitialUserPoints(userData.points);
       }
@@ -82,10 +62,10 @@ export default function SurveyPage() {
   // Initial fetch of the survey
   useEffect(() => {
     fetchSurvey();
-  }, [surveyId, user]);
+  }, [surveyId, userData]);
 
   const handleSurveyComplete = async () => {
-    if (!user || !currentSurvey) return;
+    if (!userData || !currentSurvey) return;
 
     try {
       // Show the completion modal first
@@ -93,13 +73,13 @@ export default function SurveyPage() {
 
       // Process API call to add all points
       await UserAPI.changePoints(
-        user.id,
+        userData.UID,
         currentSurvey.survey_id,
         "survey_completion"
       );
 
       // Mark the survey as completed in the user's profile
-      await UserAPI.addAnsweredSurvey(user.id, currentSurvey.survey_id);
+      await UserAPI.addAnsweredSurvey(userData.UID, currentSurvey.survey_id);
 
       // The modal will automatically redirect back to the main page after animation
       // No need to manually redirect here
@@ -366,7 +346,7 @@ export default function SurveyPage() {
             <SurveyContainer
               key={currentSurvey.id}
               survey={currentSurvey}
-              userId={user.id}
+              userId={userData.UID}
               onComplete={handleSurveyComplete}
             />
           </motion.div>
@@ -399,7 +379,7 @@ export default function SurveyPage() {
           router.push("/");
         }}
         survey={currentSurvey}
-        userId={user?.id}
+        userId={userData?.UID}
         initialPoints={initialUserPoints}
       />
     </div>

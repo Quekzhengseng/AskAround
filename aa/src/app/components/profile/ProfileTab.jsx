@@ -1,7 +1,7 @@
 // app/profile/components/ProfileTab.jsx
 import React from "react";
 
-export default function ProfileTab({ userData, user }) {
+export default function ProfileTab({ userData }) {
   return (
     <div className="bg-white rounded-xl shadow-md p-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">User Details</h2>
@@ -17,12 +17,12 @@ export default function ProfileTab({ userData, user }) {
 
           <div className="mb-4">
             <h3 className="text-sm font-medium text-gray-500">Email Address</h3>
-            <p className="text-gray-800 font-medium mt-1">{user?.email}</p>
+            <p className="text-gray-800 font-medium mt-1">{userData?.email}</p>
           </div>
 
           <div>
             <h3 className="text-sm font-medium text-gray-500">Account ID</h3>
-            <p className="text-gray-800 font-medium mt-1">{user?.id}</p>
+            <p className="text-gray-800 font-medium mt-1">{userData?.UID}</p>
           </div>
         </div>
 

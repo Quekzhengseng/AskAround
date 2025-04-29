@@ -4,7 +4,7 @@ import Link from "next/link";
 import { UserAPI } from "../../utils/SurveyAPI";
 import LoadingSpinner from "./LoadingSpinner";
 
-export default function QuestionsTab({ userData, userId }) {
+export default function QuestionsTab({ userData }) {
   const [savedQuestions, setSavedQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -19,7 +19,10 @@ export default function QuestionsTab({ userData, userId }) {
   const deleteSavedQuestion = async (index) => {
     try {
       setLoading(true);
-      const updatedQuestions = await UserAPI.removeSavedQuestion(userId, index);
+      const updatedQuestions = await UserAPI.removeSavedQuestion(
+        userData.UID,
+        index
+      );
       setSavedQuestions(updatedQuestions);
     } catch (err) {
       console.error("Error removing saved question:", err);

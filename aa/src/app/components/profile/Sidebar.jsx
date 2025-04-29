@@ -6,7 +6,6 @@ export default function Sidebar({
   activeTab,
   setActiveTab,
   userData,
-  user,
   loading,
   handleLogout,
   isLoggingOut,
@@ -99,7 +98,7 @@ export default function Sidebar({
       </div>
 
       {/* Profile summary */}
-      {!loading && user && (
+      {!loading && (
         <div className="p-4 border-b flex items-center gap-3">
           <div className="bg-indigo-100 p-2 rounded-full">
             <svg
@@ -117,7 +116,7 @@ export default function Sidebar({
           </div>
           <div className="truncate">
             <p className="font-medium text-sm text-gray-800">
-              {userData.username || user.email}
+              {userData.username}
             </p>
             <p className="text-xs text-gray-500">
               {userData.points || 0} Points

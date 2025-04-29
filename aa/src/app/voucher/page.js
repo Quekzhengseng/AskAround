@@ -2,47 +2,24 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { UserAPI, VoucherAPI } from "../utils/SurveyAPI";
-import { createClient } from "./../utils/supabase/client";
-import { useRouter } from "next/navigation";
+import { UseAuth } from "./../utils/hooks/UseAuth";
 
 export default function Profile() {
-  const supabase = createClient();
-  const router = useRouter();
   // State management
   const [savedVouchers, setSavedVouchers] = useState([]);
-  const [userData, setUserData] = useState([]);
-  const [user, setUser] = useState(null);
+  const { userData } = UseAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Check authentication and get user
-  useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        // Redirect to login if not authenticated
-        router.push("/login");
-        return;
-      }
-      setUser(user);
-    };
-
-    getUser();
-  }, [router, supabase]);
-
   // Fetch saved questions using the API directly
   useEffect(() => {
-    if (!user) return; // Don't fetch if no user
+    if (!userData) return; // Don't fetch if no user
 
     async function initializeData() {
       try {
         setLoading(true);
-        const userData = await UserAPI.getUserData(user.id);
         const voucherData = await VoucherAPI.getVoucher();
         setSavedVouchers(voucherData);
-        setUserData(userData);
       } catch (err) {
         console.error("Error fetching initial data:", err);
         setError(err.message);
@@ -52,7 +29,7 @@ export default function Profile() {
     }
 
     initializeData();
-  }, [user]);
+  }, [userData]);
 
   const claimVoucher = async (index) => {
     console.log("Voucher claimed: ", index);

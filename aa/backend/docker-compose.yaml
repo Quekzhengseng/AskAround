@@ -60,8 +60,6 @@ services:
       context: ./survey_publisher/
       dockerfile: Dockerfile
     image: AskAround/survey-publisher:1.0
-    volumes:
-      - ./secrets:/secrets
     environment:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
@@ -70,6 +68,22 @@ services:
     container_name: survey-publisher
     ports:
       - "5004:5004"
+    networks:
+      - surveyNetwork
+
+  authenticator:
+    build:
+      context: ./auth
+      dockerfile: Dockerfile
+    image: AskAround/authenticator:1.0
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - PYTHONUNBUFFERED=1
+    # restart: always
+    ports:
+      - "5005:5005"
     networks:
       - surveyNetwork
 

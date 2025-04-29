@@ -4,49 +4,25 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { SurveyAPI, UserAPI } from "./utils/SurveyAPI";
+import { UseAuth } from "./utils/hooks/UseAuth";
 import ToggleSwitch from "./components/common/ToggleSwitch";
 import { User, Award, ClipboardList } from "lucide-react";
-import { createClient } from "./utils/supabase/client";
-import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const supabase = createClient();
-  const router = useRouter();
-
   // State for surveys and loading status
   const [toBeAnsweredSurveys, setToBeAnsweredSurveys] = useState([]);
-  const [user, setUser] = useState(null);
-  const [userData, setUserData] = useState();
+  const { userData } = UseAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Check authentication and get user
-  useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        // Redirect to login if not authenticated
-        router.push("/login");
-        return;
-      }
-      setUser(user);
-    };
-
-    getUser();
-  }, [router, supabase]);
-
   // Function to fetch surveys
   const fetchSurveys = async () => {
-    if (!user) return; // Don't fetch if no user
+    if (!userData) return; // Don't fetch if no user
 
     try {
       setLoading(true);
-      // Use the authenticated user's ID instead of hardcoded value
-      const userData = await UserAPI.getUserData(user.id);
-      setUserData(userData);
-      const data = await SurveyAPI.getUserToBeAnsweredSurveys(user.id);
+      console.log(userData);
+      const data = await SurveyAPI.getUserToBeAnsweredSurveys(userData.UID);
       setToBeAnsweredSurveys(data);
       // console.log(data);
       return data;
@@ -61,10 +37,10 @@ export default function Home() {
 
   // Initial fetch of surveys
   useEffect(() => {
-    if (user) {
+    if (userData) {
       fetchSurveys();
     }
-  }, [user]);
+  }, [userData]);
 
   // Card animation variants
   const container = {
