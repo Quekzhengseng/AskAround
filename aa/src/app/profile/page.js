@@ -8,6 +8,7 @@ import Sidebar from "./../components/profile/Sidebar";
 import ProfileTab from "./../components/profile/ProfileTab";
 import QuestionsTab from "./../components/profile/QuestionsTab";
 import VouchersTab from "./../components/profile/VouchersTab";
+import PastSurveyTab from "./../components/profile/PastSurvey";
 import BackButton from "./../components/profile/BackButton";
 import LoadingSpinner from "./../components/profile/LoadingSpinner";
 import ErrorMessage from "./../components/profile/ErrorMessage";
@@ -108,6 +109,10 @@ export default function Profile() {
               )}
 
               {activeTab === "vouchers" && <VouchersTab userData={userData} />}
+
+              {activeTab === "pastSurveys" && (
+                <PastSurveyTab userData={userData} userId={user.id} />
+              )}
             </>
           )}
         </div>

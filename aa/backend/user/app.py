@@ -197,6 +197,53 @@ def get_user_to_be_answered_surveys(id):
             'success': False,
             'error': str(e)
         }), 500
+    
+@app.route('/user/<id>/surveys/answered', methods=['GET'])
+def get_user_answered_surveys(id):
+    """Endpoint to retrieve the surveys a specific user needs to answer"""
+    try:
+        # Get the user data
+        user_response = supabase.table('users').select("answered_surveys").eq('UID', id).execute()
+
+        if not user_response.data:
+            return jsonify({
+                'success': False,
+                'error': 'User not found'
+            }), 404
+
+        # Get the survey IDs to be answered
+        user_data = user_response.data[0]
+        answered_surveys = user_data.get('answered_surveys', [])
+        survey_ids = [item['survey_id'] for item in answered_surveys if 'survey_id' in item]
+
+        print(survey_ids)
+        
+        if not survey_ids:
+            # No surveys to answer
+            return jsonify({
+                'success': True,
+                'data': []
+            }), 200
+        
+        # Fetch the actual survey documents
+        surveys = []
+        
+        for survey_id in survey_ids:
+            survey_response = supabase.table('surveys').select("*").eq('survey_id', survey_id).execute()
+            if survey_response.data:
+                surveys.append(survey_response.data[0])
+        print(surveys)
+        return jsonify({
+            'success': True,
+            'data': surveys
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 @app.route('/user/<id>', methods=['PUT'])
 def add_answered_surveys(id):

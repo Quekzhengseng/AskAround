@@ -1,8 +1,6 @@
-version: '3'
-
 services:
   survey-service:
-    build: 
+    build:
       context: ./survey
       dockerfile: Dockerfile
     ports:
@@ -10,12 +8,13 @@ services:
     environment:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
+      - PYTHONUNBUFFERED=1
     restart: unless-stopped
     networks:
       - surveyNetwork
 
   user-service:
-    build: 
+    build:
       context: ./user
       dockerfile: Dockerfile
     ports:
@@ -23,12 +22,13 @@ services:
     environment:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
+      - PYTHONUNBUFFERED=1
     restart: unless-stopped
     networks:
       - surveyNetwork
 
   voucher-service:
-    build: 
+    build:
       context: ./voucher
       dockerfile: Dockerfile
     ports:
@@ -36,12 +36,13 @@ services:
     environment:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
+      - PYTHONUNBUFFERED=1
     restart: unless-stopped
     networks:
       - surveyNetwork
 
   scheduler-service:
-    build: 
+    build:
       context: ./scheduler_service
       dockerfile: Dockerfile
     ports:
@@ -49,6 +50,7 @@ services:
     environment:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
+      - PYTHONUNBUFFERED=1
     restart: unless-stopped
     networks:
       - surveyNetwork

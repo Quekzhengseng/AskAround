@@ -189,6 +189,17 @@ export const UserAPI = {
       };
     }
   },
+
+  /**
+   * Returns the answered surveys of the User
+   */
+  getUserToBeAnsweredSurveys: async (userId) => {
+    const response = await apiRequest(
+      USER_SERVICE_URL,
+      `/user/${userId}/surveys/answered`
+    );
+    return response.data;
+  },
 };
 
 /**
@@ -204,106 +215,9 @@ export const VoucherAPI = {
   },
 };
 
-/**
- * Combined functionality for survey flows
- */
-export const SurveyFlow = {
-  // /**
-  //  * Process a complete survey submission
-  //  * @param {string} userId - The user ID
-  //  * @param {string} surveyId - The survey ID
-  //  * @param {Array} responses - Array of question responses
-  //  * @returns {Object} - Status and final points
-  //  */
-  // submitSurvey: async (userId, surveyId, responses) => {
-  //   try {
-  //     let currentPoints = 0;
-
-  //     // Process each question response
-  //     for (const response of responses) {
-  //       const { questionId, question, answer } = response;
-
-  //       // Save the response and update points
-  //       await UserAPI.addQuestionResponse(userId, question, answer);
-  //       const pointsResult = await UserAPI.changePoints(
-  //         userId,
-  //         surveyId,
-  //         questionId
-  //       );
-  //       currentPoints = pointsResult.points;
-  //     }
-
-  //     // Mark the survey as complete
-  //     await UserAPI.moveToAnsweredSurveys(userId, surveyId);
-
-  //     return {
-  //       success: true,
-  //       surveyId,
-  //       finalPoints: currentPoints,
-  //     };
-  //   } catch (error) {
-  //     console.error("Error submitting complete survey:", error);
-  //     return {
-  //       success: false,
-  //       error: error.message,
-  //     };
-  //   }
-  // },
-
-  /**
-   * Get all available surveys and filter them by status
-   * @param {string} userId - The user ID
-   * @returns {Object} - Various survey categories
-   */
-  getSurveysByStatus: async (userId) => {
-    try {
-      // Get all data in parallel
-      const [allSurveys, userData] = await Promise.all([
-        SurveyAPI.getAllSurveys(),
-        UserAPI.getAnsweredQuestions(userId),
-      ]);
-
-      // Extract answered survey IDs
-      const answeredSurveyIds = (userData.answered_surveys || []).map(
-        (survey) => survey.survey_id
-      );
-
-      // Extract to-be-answered survey IDs
-      const toBeAnsweredSurveyIds = (userData.to_be_answered_surveys || []).map(
-        (survey) => survey.survey_id
-      );
-
-      // Filter surveys by status
-      const answeredSurveys = allSurveys.filter((survey) =>
-        answeredSurveyIds.includes(survey.id)
-      );
-
-      const toBeAnsweredSurveys = allSurveys.filter((survey) =>
-        toBeAnsweredSurveyIds.includes(survey.id)
-      );
-
-      const otherSurveys = allSurveys.filter(
-        (survey) =>
-          !answeredSurveyIds.includes(survey.id) &&
-          !toBeAnsweredSurveyIds.includes(survey.id)
-      );
-
-      return {
-        all: allSurveys,
-        answered: answeredSurveys,
-        toBeAnswered: toBeAnsweredSurveys,
-        other: otherSurveys,
-      };
-    } catch (error) {
-      console.error("Error categorizing surveys:", error);
-      throw error;
-    }
-  },
-};
 
 export default {
   SurveyAPI,
   UserAPI,
   VoucherAPI,
-  SurveyFlow,
 };
