@@ -1,0 +1,7 @@
+Flask
+python-dotenv
+supabase
+Flask-Cors
+Flask-APScheduler
+gunicorn 
+requests 
