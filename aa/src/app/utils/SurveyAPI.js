@@ -113,6 +113,44 @@ export const UserAPI = {
   },
 
   /**
+   * Request a password reset email
+   * @param {string} email - User's email address
+   * @returns {Promise<Object>} Response from the server
+   */
+  forgotPassword: async (email) => {
+    const response = await apiRequest(
+      AUTHENTICATION_SERVICE_URL,
+      "/forgot-password",
+      "POST",
+      {
+        email,
+        reset_url: `${window.location.origin}/reset-password`,
+      }
+    );
+    return response.data;
+  },
+
+  /**
+   * Reset password with token from email
+   * @param {string} password - New password
+   * @param {string} accessToken - Access token from reset email
+   * @returns {Promise<Object>} Response with new JWT token
+   */
+  resetPassword: async (password, accessToken, refreshToken) => {
+    const response = await apiRequest(
+      AUTHENTICATION_SERVICE_URL,
+      "/reset-password",
+      "POST",
+      {
+        password,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      }
+    );
+    return response.data;
+  },
+
+  /**
    * Change points of the User
    */
   changePoints: async (userId, surveyId, questionId) => {

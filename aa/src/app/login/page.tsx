@@ -2,6 +2,7 @@
 import { login, signup } from "../utils/AuthAPI";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -124,12 +125,14 @@ export default function LoginPage() {
 
               {isLogin && (
                 <div className="flex items-center justify-end">
-                  <button
-                    type="button"
-                    className="text-sm text-indigo-600 hover:text-indigo-500"
-                  >
-                    Forgot password?
-                  </button>
+                  <Link href="/login/forgetPassword">
+                    <button
+                      type="button"
+                      className="text-sm text-indigo-600 hover:text-indigo-500"
+                    >
+                      Forgot password?
+                    </button>
+                  </Link>
                 </div>
               )}
 
