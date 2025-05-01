@@ -62,8 +62,6 @@ def login():
         return jsonify({
             "message": "Login successful",
             "token": jwt_token,
-            "token1" : access_token,
-            "refresh_token" : refresh_token
         })
 
     except Exception as e:

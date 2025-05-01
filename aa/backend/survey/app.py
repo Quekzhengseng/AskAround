@@ -25,19 +25,16 @@ if not supabase_url or not supabase_key:
     raise ValueError("Missing Supabase credentials")
 
 supabase = create_client(supabase_url, supabase_key)
-# Import utility functions for Supabase
-from utils_supabase import upload_survey, clear_supabase
+# # Import utility functions for Supabase
+# from utils_supabase import upload_survey, clear_supabase
 
-# Clear Supabase before initializing
-clear_supabase(supabase)
+# # Clear Supabase before initializing
+# clear_supabase(supabase)
 
-# Populate Supabase with sample survey data
-upload_survey(supabase)
+# # Populate Supabase with sample survey data
+# upload_survey(supabase)
 
-print("Supabase initialized successfully for Surveys!")
-
-# Import utility functions for Supabase
-from utils_supabase import upload_survey, clear_supabase
+# print("Supabase initialized successfully for Surveys!")
 
 def retrieve_all_surveys():
     """Retrieve all surveys from Supabase"""

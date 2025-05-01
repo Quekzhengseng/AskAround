@@ -18,8 +18,6 @@ export default function LoginPage() {
     if (result.success) {
       console.log(result);
       localStorage.setItem("token", result.token);
-      localStorage.setItem("token1", result.token1);
-      localStorage.setItem("refresh_token", result.refresh_token);
 
       router.push("/");
     } else {

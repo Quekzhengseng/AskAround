@@ -216,7 +216,7 @@ def get_user_answered_surveys(id):
         answered_surveys = user_data.get('answered_surveys', [])
         survey_ids = [item['survey_id'] for item in answered_surveys if 'survey_id' in item]
 
-        print(survey_ids)
+        # print(survey_ids)
         
         if not survey_ids:
             # No surveys to answer
@@ -232,7 +232,7 @@ def get_user_answered_surveys(id):
             survey_response = supabase.table('surveys').select("*").eq('survey_id', survey_id).execute()
             if survey_response.data:
                 surveys.append(survey_response.data[0])
-        print(surveys)
+        # print(surveys)
         return jsonify({
             'success': True,
             'data': surveys

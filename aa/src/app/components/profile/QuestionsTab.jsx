@@ -1,4 +1,3 @@
-// app/profile/components/QuestionsTab.jsx
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { UserAPI } from "../../utils/SurveyAPI";
@@ -8,6 +7,7 @@ export default function QuestionsTab({ userData }) {
   const [savedQuestions, setSavedQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [expandedIds, setExpandedIds] = useState({});
 
   useEffect(() => {
     // Initialize with data from userData if available
@@ -30,6 +30,14 @@ export default function QuestionsTab({ userData }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Toggle expanded state for a question
+  const toggleExpanded = (index) => {
+    setExpandedIds((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
   };
 
   if (loading) {
@@ -90,59 +98,113 @@ export default function QuestionsTab({ userData }) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {savedQuestions.map((item, index) => (
-        <div
-          key={index}
-          className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
-        >
-          <div className="bg-indigo-100 px-4 py-3 flex justify-between items-center">
-            <h3 className="font-medium text-indigo-800">
-              Question #{index + 1}
-            </h3>
-            <button
-              onClick={() => deleteSavedQuestion(index)}
-              className="text-red-500 hover:text-red-700 transition-colors duration-300"
-              aria-label="Delete question"
+    <div className="space-y-4">
+      {savedQuestions.map((item, index) => {
+        const isExpanded = !!expandedIds[index];
+
+        return (
+          <div
+            key={index}
+            className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
+          >
+            {/* Row Header - clickable to expand */}
+            <div
+              className="px-4 py-3 flex items-center cursor-pointer"
+              onClick={() => toggleExpanded(index)}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
+              <div className="bg-indigo-100 rounded-lg p-2 mr-3">
+                <span className="font-medium text-indigo-800">
+                  #{index + 1}
+                </span>
+              </div>
+
+              <div className="flex-grow">
+                <p className="text-gray-800 font-medium line-clamp-1">
+                  {item.question}
+                </p>
+              </div>
+
+              <div className="text-right flex items-center">
+                <span className="text-gray-500 text-sm mr-4 hidden sm:inline">
+                  {new Date(item.timestamp).toLocaleDateString()}
+                </span>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent triggering the row click
+                    deleteSavedQuestion(index);
+                  }}
+                  className="text-red-500 hover:text-red-700 transition-colors duration-300"
+                  aria-label="Delete question"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+
+                <button
+                  className="ml-2 text-gray-500 hover:text-gray-700"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleExpanded(index);
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`h-5 w-5 transition-transform duration-200 transform ${
+                      isExpanded ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile view completed date (only visible on small screens) */}
+            <div className="px-4 pb-2 sm:hidden text-gray-500 text-xs -mt-2">
+              Completed: {new Date(item.timestamp).toLocaleDateString()}
+            </div>
+
+            {/* Expandable Answer Section */}
+            {isExpanded && (
+              <div className="p-4 bg-gray-50 border-t border-gray-100 transition-all duration-200">
+                <div className="mb-2">
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">
+                      Question:
+                    </h4>
+                    <p className="text-gray-800">{item.question}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">
+                      Answer:
+                    </h4>
+                    <p className="text-gray-800">{item.response}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="p-4">
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-500 mb-1">
-                Question:
-              </h4>
-              <p className="text-gray-800">{item.question}</p>
-            </div>
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-500 mb-1">
-                Answer:
-              </h4>
-              <p className="text-gray-800">{item.response}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 mb-1">
-                Completed On:
-              </h4>
-              <p className="text-gray-800">
-                {new Date(item.timestamp).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -153,16 +153,17 @@ const QuestionCard = ({ question, answer, setAnswer, onNext }) => {
         );
 
       case QUESTION_TYPES.YES_NO:
+        // Directly store string "yes" or "no" instead of boolean
         return (
           <div className="flex justify-center space-x-6 mt-6">
             <button
               className={`px-8 py-3 rounded-lg text-lg font-medium transition-colors transform-3d ${
-                answer === true
+                answer === "yes"
                   ? "bg-blue-500 text-white rotate-y-1"
                   : "bg-gray-100 hover:bg-gray-200 hover:rotate-y-1"
               }`}
               onClick={() => {
-                setAnswer(true);
+                setAnswer("yes"); // Store "yes" string instead of boolean true
                 if (onNext) setTimeout(onNext, 500);
               }}
             >
@@ -170,12 +171,12 @@ const QuestionCard = ({ question, answer, setAnswer, onNext }) => {
             </button>
             <button
               className={`px-8 py-3 rounded-lg text-lg font-medium transition-colors transform-3d ${
-                answer === false
+                answer === "no"
                   ? "bg-blue-500 text-white rotate-y-1"
                   : "bg-gray-100 hover:bg-gray-200 hover:rotate-y-1"
               }`}
               onClick={() => {
-                setAnswer(false);
+                setAnswer("no"); // Store "no" string instead of boolean false
                 if (onNext) setTimeout(onNext, 500);
               }}
             >

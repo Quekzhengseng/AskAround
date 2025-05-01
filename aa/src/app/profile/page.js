@@ -2,7 +2,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { UseAuth } from "./../utils/hooks/UseAuth";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "./../components/profile/Sidebar";
 import ProfileTab from "./../components/profile/ProfileTab";
 import QuestionsTab from "./../components/profile/QuestionsTab";
@@ -14,12 +14,36 @@ import ErrorMessage from "./../components/profile/ErrorMessage";
 
 export default function Profile() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   // State management
   const { userData } = UseAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [activeTab, setActiveTab] = useState("profile");
+
+  // Initialize active tab from URL parameter or localStorage, fallback to 'profile'
+  const [activeTab, setActiveTab] = useState(() => {
+    // First check URL parameter
+    const tabParam = searchParams.get("tab");
+    if (
+      tabParam &&
+      ["profile", "questions", "vouchers", "pastSurveys"].includes(tabParam)
+    ) {
+      return tabParam;
+    }
+
+    // Then check localStorage (if we're in browser environment)
+    if (typeof window !== "undefined") {
+      const savedTab = localStorage.getItem("profileActiveTab");
+      if (savedTab) {
+        return savedTab;
+      }
+    }
+
+    // Default to profile tab
+    return "profile";
+  });
 
   // Update loading state when userData is fetched
   useEffect(() => {
@@ -28,13 +52,28 @@ export default function Profile() {
     }
   }, [userData]);
 
+  // Update URL and localStorage when activeTab changes
+  useEffect(() => {
+    // Update URL without full page navigation
+    router.replace(`/profile?tab=${activeTab}`, { scroll: false });
+
+    // Save to localStorage
+    localStorage.setItem("profileActiveTab", activeTab);
+  }, [activeTab, router]);
+
+  // Handle tab change
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+  };
+
   // Function to handle logout
   const handleLogout = () => {
     try {
       setIsLoggingOut(true);
 
-      // Remove token from localStorage
+      // Remove tokens from localStorage
       localStorage.removeItem("token");
+      localStorage.removeItem("profileActiveTab");
 
       // Redirect to login page
       router.push("/login");
@@ -50,7 +89,7 @@ export default function Profile() {
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         userData={userData}
         loading={loading}
         handleLogout={handleLogout}
@@ -65,6 +104,7 @@ export default function Profile() {
             {activeTab === "profile" && "Profile Information"}
             {activeTab === "questions" && "My Questions"}
             {activeTab === "vouchers" && "My Vouchers"}
+            {activeTab === "pastSurveys" && "Past Surveys"}
           </h1>
 
           {loading ? (

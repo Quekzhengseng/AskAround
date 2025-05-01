@@ -19,13 +19,11 @@ async function loginAuthRequest(data: FormData, type: "login" | "signup") {
     return {
       success: true,
       token: result.token,
-      token1: result.token1,
-      refresh_token: result.refresh_token,
     };
   } else {
     return {
       success: false,
-      message: result.message || "Something went wrong.",
+      message: result.error || "Something went wrong.",
     };
   }
 }
@@ -52,7 +50,7 @@ async function signupAuthRequest(data: FormData, type: "login" | "signup") {
   } else {
     return {
       success: false,
-      message: result.message || "Something went wrong.",
+      message: result.error || "Something went wrong.",
     };
   }
 }
