@@ -16,7 +16,12 @@ async function loginAuthRequest(data: FormData, type: "login" | "signup") {
 
   const result = await response.json();
   if (response.ok) {
-    return { success: true, token: result.token };
+    return {
+      success: true,
+      token: result.token,
+      token1: result.token1,
+      refresh_token: result.refresh_token,
+    };
   } else {
     return {
       success: false,
@@ -40,7 +45,10 @@ async function signupAuthRequest(data: FormData, type: "login" | "signup") {
 
   const result = await response.json();
   if (response.ok) {
-    return { success: true, token: result.token };
+    return {
+      success: true,
+      token: result.token,
+    };
   } else {
     return {
       success: false,

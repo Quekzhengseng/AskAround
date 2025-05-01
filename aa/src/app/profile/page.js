@@ -2,6 +2,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { UseAuth } from "./../utils/hooks/UseAuth";
+import { useRouter } from "next/navigation";
 import Sidebar from "./../components/profile/Sidebar";
 import ProfileTab from "./../components/profile/ProfileTab";
 import QuestionsTab from "./../components/profile/QuestionsTab";
@@ -12,6 +13,7 @@ import LoadingSpinner from "./../components/profile/LoadingSpinner";
 import ErrorMessage from "./../components/profile/ErrorMessage";
 
 export default function Profile() {
+  const router = useRouter();
   // State management
   const { userData } = UseAuth();
   const [loading, setLoading] = useState(true);
@@ -27,13 +29,20 @@ export default function Profile() {
   }, [userData]);
 
   // Function to handle logout
-  const handleLogout = async () => {
+  const handleLogout = () => {
     try {
       setIsLoggingOut(true);
-      await supabase.auth.signOut();
+
+      // Remove token from localStorage
+      localStorage.removeItem("token");
+
+      // Redirect to login page
       router.push("/login");
     } catch (error) {
-      console.error("Error logging out:", error);
+      console.error("Error during logout:", error);
+      setError("Failed to log out. Please try again.");
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 

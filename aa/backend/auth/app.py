@@ -56,9 +56,14 @@ def login():
         # Generate JWT token for the user
         jwt_token = generate_jwt(response.user.id)
 
+        access_token = response.session.access_token
+        refresh_token = response.session.refresh_token
+
         return jsonify({
             "message": "Login successful",
-            "token": jwt_token
+            "token": jwt_token,
+            "token1" : access_token,
+            "refresh_token" : refresh_token
         })
 
     except Exception as e:
