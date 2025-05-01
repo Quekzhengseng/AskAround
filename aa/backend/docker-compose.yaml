@@ -87,6 +87,21 @@ services:
     networks:
       - surveyNetwork
 
+  responses:
+    build:
+      context: ./responses
+      dockerfile: Dockerfile
+    ports:
+      - "5101:5101"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY} # idk if I need? my script so far doesnt use
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    networks:
+      - surveyNetwork
+    container_name: responses-service
 networks:
   surveyNetwork:
     driver: bridge
