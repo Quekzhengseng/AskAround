@@ -11,6 +11,7 @@ import PastSurveyTab from "./../components/profile/PastSurvey";
 import BackButton from "./../components/profile/BackButton";
 import LoadingSpinner from "./../components/profile/LoadingSpinner";
 import ErrorMessage from "./../components/profile/ErrorMessage";
+import { UserAPI } from "../utils/SurveyAPI";
 
 export default function Profile() {
   const router = useRouter();
@@ -70,6 +71,8 @@ export default function Profile() {
   const handleLogout = () => {
     try {
       setIsLoggingOut(true);
+
+      UserAPI.logout(localStorage.getItem("token"));
 
       // Remove tokens from localStorage
       localStorage.removeItem("token");

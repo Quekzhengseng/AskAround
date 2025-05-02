@@ -105,6 +105,19 @@ export const UserAPI = {
   },
 
   /**
+   * Logout of all devices
+   */
+  logout: async (token) => {
+    const response = await apiRequest(
+      AUTHENTICATION_SERVICE_URL,
+      "/logout",
+      "POST",
+      { token }
+    );
+    return response;
+  },
+
+  /**
    * Get user data
    */
   getUserData: async (userId) => {

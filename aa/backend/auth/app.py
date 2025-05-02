@@ -193,6 +193,40 @@ def reset_password():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+    
+# Route to handle logout
+@app.route('/logout', methods=['POST'])
+def logout():
+    data = request.json
+    token = data.get("token")
+    
+    if not token:
+        return jsonify({"error": "Token is required"}), 400
+    
+    # First decode the token without verification to get user_id and issue time
+    decoded_token = jwt.decode(token, jwt_secret_key, algorithms=["HS256"])
+    user_id = decoded_token.get("sub")
+
+    try:
+        # Current time - any tokens issued before this are now invalid
+        now = datetime.datetime.utcnow()
+        
+        # Add or update entry in token_blacklist
+        supabase.table("token_blacklist").upsert(
+            {
+                "user_id": user_id,
+                "valid_after": now.isoformat()
+            },
+            on_conflict="user_id"  # This is the key line - specify which column is unique
+        ).execute()
+        
+        return jsonify({
+            "message": "Logout is successful",
+        })
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/verify', methods=['POST'])
