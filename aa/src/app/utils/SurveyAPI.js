@@ -171,11 +171,11 @@ export const UserAPI = {
   /**
    * Change points of the User
    */
-  changePoints: async (userId, surveyId, questionId, token) => {
+  changePoints: async (surveyId, questionId, token) => {
     // Updated to use token and match the Flask API endpoint
     const response = await apiRequest(
       USER_SERVICE_URL,
-      `/user/next/${userId}`,
+      `/user/next`,
       "PUT",
       {
         survey_id: surveyId,
@@ -249,18 +249,23 @@ export const UserAPI = {
     );
   },
 
-  // ResponseAPI 
-  submitFullResponse: async (surveyId, userId, answersPayload, token = null) => {
+  // ResponseAPI
+  submitFullResponse: async (
+    surveyId,
+    userId,
+    answersPayload,
+    token = null
+  ) => {
     return await apiRequest(
-        RESPONSES_SERVICE_URL,    
-        "/responses",             
-        "POST",                   
-        {                         
-            survey_id: surveyId,
-            UID: userId,          
-            answers: answersPayload,
-        },
-        token                    
+      RESPONSES_SERVICE_URL,
+      "/responses",
+      "POST",
+      {
+        survey_id: surveyId,
+        UID: userId,
+        answers: answersPayload,
+      },
+      token
     );
   },
 

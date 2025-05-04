@@ -75,9 +75,9 @@ export default function SurveyPage() {
 
       // Process API call to add all points
       await UserAPI.changePoints(
-        userData.UID,
         currentSurvey.survey_id,
-        "survey_completion"
+        "survey_completion",
+        localStorage.getItem("token")
       );
 
       // Mark the survey as completed in the user's profile
