@@ -26,7 +26,9 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
 
       try {
         setIsLoadingInitialData(true);
-        const userData = await UserAPI.getUserData(userId);
+        const userData = await UserAPI.getUserData(
+          localStorage.getItem("token")
+        );
       } catch (err) {
         console.error("Error fetching initial user data:", err);
       } finally {
@@ -36,7 +38,6 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
 
     initializeUserData();
   }, [userId]);
-  
 
   // Make sure we have questions
   if (!survey || !survey.questions || survey.questions.length === 0) {
@@ -99,9 +100,9 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
     try {
       // Save the answer for this specific question to the API
       await UserAPI.addQuestionResponse(
-        userId,
         currentQuestion["question"],
-        answers[currentQuestion.id]
+        answers[currentQuestion.id],
+        localStorage.getItem("token")
       );
       // No need to show notification for regular answer saving
     } catch (err) {
@@ -119,13 +120,18 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
     setIsSubmitting(true);
     setError(null);
     let token = null;
-    if (userId !== "") { // Only get token if not a guest user
-        try {
-            token = localStorage.getItem('token'); // Use your actual key name
-            if (!token) {
-              console.warn(`No token found in localStorage for user ${userId}. Proceeding without auth header.`);
-            }
-        } catch (e) { console.error("Error accessing localStorage for token:", e); }
+    if (userId !== "") {
+      // Only get token if not a guest user
+      try {
+        token = localStorage.getItem("token"); // Use your actual key name
+        if (!token) {
+          console.warn(
+            `No token found in localStorage for user ${userId}. Proceeding without auth header.`
+          );
+        }
+      } catch (e) {
+        console.error("Error accessing localStorage for token:", e);
+      }
     }
     try {
       // Save final answer if needed
@@ -134,12 +140,16 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
       }
 
       try {
-        const answersPayload = survey.questions.map(q => ({
+        const answersPayload = survey.questions.map((q) => ({
           question_id: q.id,
-          response: answers[q.id] !== undefined ? answers[q.id] : null // Use answer from state or null
+          response: answers[q.id] !== undefined ? answers[q.id] : null, // Use answer from state or null
         }));
-        console.log("TOKENN", token)
-        console.log("Attempting to submit full response set:", { surveyId: survey.survey_id, userId: userId, answers: answersPayload.length });
+        console.log("TOKENN", token);
+        console.log("Attempting to submit full response set:", {
+          surveyId: survey.survey_id,
+          userId: userId,
+          answers: answersPayload.length,
+        });
 
         await UserAPI.submitFullResponse(
           survey.survey_id,
@@ -147,12 +157,17 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
           answersPayload,
           token // Pass the retrieved token
         );
-        console.log("Successfully submitted full response set to responses service.");
-
-    } catch (responseApiError) {
+        console.log(
+          "Successfully submitted full response set to responses service."
+        );
+      } catch (responseApiError) {
         console.error("Error submitting full response set:", responseApiError);
-        throw new Error(`Failed to record full response: ${responseApiError?.response?.error || responseApiError.message}`);
-    }
+        throw new Error(
+          `Failed to record full response: ${
+            responseApiError?.response?.error || responseApiError.message
+          }`
+        );
+      }
 
       // Show achievement animation
 
@@ -164,10 +179,12 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
       setTimeout(() => {
         if (onComplete) onComplete();
       }, 2500);
-
     } catch (err) {
       console.error("Error during final survey submission steps:", err);
-      setError(err.message || "There was a problem submitting your survey. Please try again."); 
+      setError(
+        err.message ||
+          "There was a problem submitting your survey. Please try again."
+      );
     } finally {
       // Keep existing logic
       setIsSubmitting(false);

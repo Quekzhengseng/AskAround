@@ -36,7 +36,9 @@ export default function SurveyPage() {
     try {
       setLoading(true);
       // Get all surveys the user needs to answer
-      const surveys = await SurveyAPI.getUserToBeAnsweredSurveys(userData.UID);
+      const surveys = await SurveyAPI.getUserToBeAnsweredSurveys(
+        localStorage.getItem("token")
+      );
 
       // Find the specific survey by ID
       const survey = surveys.find((s) => s.survey_id === surveyId);
@@ -79,7 +81,10 @@ export default function SurveyPage() {
       );
 
       // Mark the survey as completed in the user's profile
-      await UserAPI.addAnsweredSurvey(userData.UID, currentSurvey.survey_id);
+      await UserAPI.addAnsweredSurvey(
+        currentSurvey.survey_id,
+        localStorage.getItem("token")
+      );
 
       // The modal will automatically redirect back to the main page after animation
       // No need to manually redirect here
