@@ -5,3 +5,4 @@ Flask-Cors
 Flask-APScheduler
 gunicorn 
 requests 
+pyjwt
