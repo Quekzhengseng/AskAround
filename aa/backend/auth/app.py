@@ -238,60 +238,53 @@ def verify_jwt():
         return jsonify({"error": "Token is required"}), 400
 
     try:
-        # First decode the token without verification to get user_id and issue time
-        unverified_payload = jwt.decode(token, options={"verify_signature": False})
-        user_id = unverified_payload.get("sub")
-        
-        # More robust handling of the issued-at time
-        iat = unverified_payload.get("iat", 0)
+        # ✅ Verify token signature and expiration first
+        decoded_token = jwt.decode(token, jwt_secret_key, algorithms=["HS256"])
+        user_id = decoded_token.get("sub")
+        iat = decoded_token.get("iat", 0)
+
+        if not user_id:
+            return jsonify({"error": "Invalid token format (no sub)"}), 401
+
+        # Parse issued-at timestamp
         try:
             token_issue_time = datetime.datetime.fromtimestamp(iat, tz=datetime.timezone.utc)
         except (ValueError, TypeError) as e:
             print(f"Error parsing token issue time: {str(e)}, iat value: {iat}")
-            token_issue_time = datetime.datetime.fromtimestamp(0, tz=datetime.timezone.utc)  # Fallback
-        
-        if not user_id:
-            return jsonify({"error": "Invalid token format"}), 401
-            
-        print(f"Checking token for user: {user_id}, issued at: {token_issue_time}")
-            
-        # Check if there's a blacklist entry for this user
+            token_issue_time = datetime.datetime.fromtimestamp(0, tz=datetime.timezone.utc)
+
+        print(f"Verified token for user: {user_id}, issued at: {token_issue_time}")
+
+        # 🔒 Check blacklist
         try:
             result = supabase.table("token_blacklist").select("valid_after").eq("user_id", user_id).execute()
             print(f"Blacklist result: {result.data}")
             
-            # If user has a blacklist entry, check if token was issued before valid_after time
             if result.data and len(result.data) > 0:
                 valid_after_str = result.data[0]["valid_after"]
                 print(f"Valid after string: {valid_after_str}")
                 
-                # Handle different timestamp formats
+                # Handle different timestamp formats robustly
                 try:
-                    # Try ISO format first
                     valid_after = datetime.datetime.fromisoformat(valid_after_str.replace('Z', '+00:00'))
                 except ValueError:
                     try:
-                        # Try RFC 3339 format
                         valid_after = datetime.datetime.strptime(valid_after_str, "%Y-%m-%dT%H:%M:%S.%fZ")
                         valid_after = valid_after.replace(tzinfo=datetime.timezone.utc)
                     except ValueError:
-                        # Last resort
                         valid_after = datetime.datetime.strptime(valid_after_str[:19], "%Y-%m-%dT%H:%M:%S")
                         valid_after = valid_after.replace(tzinfo=datetime.timezone.utc)
                 
                 print(f"Comparing: token issued {token_issue_time} vs valid after {valid_after}")
                 
-                # If token was issued before valid_after, it's invalid
                 if token_issue_time < valid_after:
                     return jsonify({"error": "Token has been invalidated"}), 401
+
         except Exception as e:
             print(f"Error during blacklist check: {str(e)}")
-            # Continue with validation even if blacklist check fails
-        
-        # Now verify the token signature and expiration
-        decoded_token = jwt.decode(token, jwt_secret_key, algorithms=["HS256"])
-        
-        # Token is valid
+            # Optional: return error or continue based on your security policy
+
+        # ✅ Token is valid and not blacklisted
         return jsonify({"message": "Token is valid", "id": user_id})
 
     except jwt.ExpiredSignatureError:

@@ -54,10 +54,10 @@ export const SurveyAPI = {
   /**
    * Get surveys that a user needs to answer
    */
-  getUserToBeAnsweredSurveys: async (userId) => {
+  getUserToBeAnsweredSurveys: async (token) => {
     const response = await apiRequest(
       USER_SERVICE_URL,
-      `/user/${userId}/surveys/to-answer`
+      `/user/${token}/surveys/to-answer`
     );
     return response.data;
   },

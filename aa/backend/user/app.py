@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client
 from datetime import datetime, timezone
+import jwt
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -19,6 +20,7 @@ CORS(app, resources={r"/*": {
 # Initialize Supabase
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
+jwt_secret_key = os.getenv("JWT_SECRET_KEY")
 
 if not supabase_url or not supabase_key:
     raise ValueError("Missing Supabase credentials")
@@ -26,11 +28,52 @@ if not supabase_url or not supabase_key:
 supabase = create_client(supabase_url, supabase_key)
 print("Supabase initialized for User Service!")
 
-@app.route('/user/<id>', methods=['GET'])
-def get_specific_user_data(id):
-    """Endpoint to retrieve the specific user's data"""
+#Helper Functions
+def decode(token):
     try:
-        response = supabase.table('users').select("*").eq('UID', id).execute()
+        # ✅ Verify token signature and decode
+        decoded_token = jwt.decode(token, jwt_secret_key, algorithms=["HS256"])
+        user_id = decoded_token.get("sub")
+        
+        if not user_id:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid token format (missing sub)'
+            }), 401
+
+    except jwt.ExpiredSignatureError:
+        return jsonify({
+            'success': False,
+            'error': 'Token has expired'
+        }), 401
+    except jwt.InvalidTokenError:
+        return jsonify({
+            'success': False,
+            'error': 'Invalid token'
+        }), 401
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f"Unexpected error during token decoding: {str(e)}"
+        }), 500
+
+@app.route('/user', methods=['GET'])
+def get_specific_user_data():
+    """Endpoint to retrieve the specific user's data"""
+    # 🔐 Get token from Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            'success': False,
+            'error': 'Authorization token missing or malformed'
+        }), 401
+    
+    token = auth_header.split(" ")[1]
+
+    user_id = decode(token)
+
+    try:
+        response = supabase.table('users').select("*").eq('UID', user_id).execute()
         
         if not response.data:
             return jsonify({
@@ -51,11 +94,23 @@ def get_specific_user_data(id):
             'error': str(e)
         }), 500
 
-@app.route('/user/savedquestion/<id>', methods=['GET'])
-def get_saved_questions(id):
+@app.route('/user/savedquestion', methods=['GET'])
+def get_saved_questions():
     """Endpoint to retrieve the specific user's saved questions"""
+    # 🔐 Get token from Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            'success': False,
+            'error': 'Authorization token missing or malformed'
+        }), 401
+    
+    token = auth_header.split(" ")[1]
+
+    user_id = decode(token)
+
     try:
-        response = supabase.table('users').select("saved_questions").eq('UID', id).execute()
+        response = supabase.table('users').select("saved_questions").eq('UID', user_id).execute()
         
         if not response.data:
             return jsonify({
@@ -76,11 +131,23 @@ def get_saved_questions(id):
             'error': str(e)
         }), 500
 
-@app.route('/user/<id>/<num>', methods=['DELETE'])
-def delete_specific_saved_question(id, num):
+@app.route('/user/<num>', methods=['DELETE'])
+def delete_specific_saved_question(num):
     """Endpoint to delete a particular saved question"""
+    # 🔐 Get token from Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            'success': False,
+            'error': 'Authorization token missing or malformed'
+        }), 401
+    
+    token = auth_header.split(" ")[1]
+
+    user_id = decode(token)
+
     try:
-        response = supabase.table('users').select("*").eq('UID', id).execute()
+        response = supabase.table('users').select("*").eq('UID', user_id).execute()
         
         if not response.data:
             return jsonify({
@@ -96,7 +163,7 @@ def delete_specific_saved_question(id, num):
 
         del saved_questions[index]
 
-        response = supabase.table('users').update({'saved_questions': saved_questions}).eq('UID', id).execute()
+        response = supabase.table('users').update({'saved_questions': saved_questions}).eq('UID', user_id).execute()
         
         return jsonify({
             'success': True,
@@ -108,9 +175,21 @@ def delete_specific_saved_question(id, num):
             'error': str(e)
         }), 500
 
-@app.route('/user/add/<id>', methods=['PUT'])
-def add_to_responded(id):
+@app.route('/user/add', methods=['PUT'])
+def add_to_responded():
     """Endpoint to add to specific user's questions answered databank to be saved"""
+    # 🔐 Get token from Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            'success': False,
+            'error': 'Authorization token missing or malformed'
+        }), 401
+    
+    token = auth_header.split(" ")[1]
+
+    user_id = decode(token)
+
     try:
         request_data = request.get_json()
 
@@ -118,7 +197,7 @@ def add_to_responded(id):
         response_text = request_data["answer"]
 
         # First check if the user exists
-        user_response = supabase.table('users').select("saved_questions").eq('UID', id).execute()
+        user_response = supabase.table('users').select("saved_questions").eq('UID', user_id).execute()
         
         new_question = {
             'question': question,
@@ -129,7 +208,7 @@ def add_to_responded(id):
         if not user_response.data:
             # Create new user with the question
             supabase.table('users').insert({
-                'UID': id,
+                'UID': user_id,
                 'saved_questions': [new_question]
             }).execute()
         else:
@@ -143,7 +222,7 @@ def add_to_responded(id):
             # Update user
             supabase.table('users').update({
                 'saved_questions': saved_questions
-            }).eq('UID', id).execute()
+            }).eq('UID', user_id).execute()
 
         return jsonify({
             'success': True,
@@ -154,12 +233,24 @@ def add_to_responded(id):
             'error': str(e)
         }), 500
 
-@app.route('/user/<id>/surveys/to-answer', methods=['GET'])
-def get_user_to_be_answered_surveys(id):
+@app.route('/user/surveys/to-answer', methods=['GET'])
+def get_user_to_be_answered_surveys():
     """Endpoint to retrieve the surveys a specific user needs to answer"""
+    # 🔐 Get token from Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            'success': False,
+            'error': 'Authorization token missing or malformed'
+        }), 401
+    
+    token = auth_header.split(" ")[1]
+
+    user_id = decode(token)
+    
     try:
         # Get the user data
-        user_response = supabase.table('users').select("to_be_answered_surveys").eq('UID', id).execute()
+        user_response = supabase.table('users').select("to_be_answered_surveys").eq('UID', user_id).execute()
 
         if not user_response.data:
             return jsonify({
@@ -198,12 +289,24 @@ def get_user_to_be_answered_surveys(id):
             'error': str(e)
         }), 500
     
-@app.route('/user/<id>/surveys/answered', methods=['GET'])
-def get_user_answered_surveys(id):
+@app.route('/user/surveys/answered', methods=['GET'])
+def get_user_answered_surveys():
     """Endpoint to retrieve the surveys a specific user needs to answer"""
+    # 🔐 Get token from Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            'success': False,
+            'error': 'Authorization token missing or malformed'
+        }), 401
+    
+    token = auth_header.split(" ")[1]
+
+    user_id = decode(token)
+
     try:
         # Get the user data
-        user_response = supabase.table('users').select("answered_surveys").eq('UID', id).execute()
+        user_response = supabase.table('users').select("answered_surveys").eq('UID', user_id).execute()
 
         if not user_response.data:
             return jsonify({
@@ -245,15 +348,27 @@ def get_user_answered_surveys(id):
         }), 500
 
 
-@app.route('/user/<id>', methods=['PUT'])
-def add_answered_surveys(id):
+@app.route('/user', methods=['PUT'])
+def add_answered_surveys():
     """Endpoint to add the specific user's answered survey databank to track survey movement"""
+    # 🔐 Get token from Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            'success': False,
+            'error': 'Authorization token missing or malformed'
+        }), 401
+    
+    token = auth_header.split(" ")[1]
+
+    user_id = decode(token)
+
     try:
         request_data = request.get_json()
         survey_id = request_data["survey_id"]
 
         # Check if user exists
-        user_response = supabase.table('users').select("answered_surveys").eq('UID', id).execute()
+        user_response = supabase.table('users').select("answered_surveys").eq('UID', user_id).execute()
         
         new_survey = {
             'survey_id': survey_id,
@@ -263,7 +378,7 @@ def add_answered_surveys(id):
         if not user_response.data:
             # Create new user with the answered survey
             supabase.table('users').insert({
-                'UID': id,
+                'UID': user_id,
                 'answered_surveys': [new_survey]
             }).execute()
         else:
@@ -277,7 +392,7 @@ def add_answered_surveys(id):
             # Update user
             supabase.table('users').update({
                 'answered_surveys': answered_surveys
-            }).eq('UID', id).execute()
+            }).eq('UID', user_id).execute()
 
         return jsonify({
             'success': True,
@@ -291,6 +406,18 @@ def add_answered_surveys(id):
 @app.route('/user/next/<id>', methods=['PUT'])
 def change_points(id):
     """Endpoint to change the points of the user based on the question or survey completion"""
+    # 🔐 Get token from Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            'success': False,
+            'error': 'Authorization token missing or malformed'
+        }), 401
+    
+    token = auth_header.split(" ")[1]
+
+    user_id = decode(token)
+
     try:
         request_data = request.get_json()
 
@@ -320,12 +447,12 @@ def change_points(id):
             total_points = sum(question.get('points', 0) for question in survey_data.get('questions', []))
             
             # Get user data
-            user_response = supabase.table('users').select("points").eq('UID', id).execute()
+            user_response = supabase.table('users').select("points").eq('UID', user_id).execute()
 
             if not user_response.data:
                 return jsonify({
                     'success': False,
-                    'error': f"User with id {id} not found."
+                    'error': f"User with id {user_id} not found."
                 }), 404
                 
             # Update points
@@ -336,11 +463,11 @@ def change_points(id):
             # Update user
             update_response = supabase.table('users').update({
                 'points': new_points
-            }).eq('UID', id).execute()
+            }).eq('UID', user_id).execute()
 
             return jsonify({
                 'success': True,
-                'message': f"User {id} awarded {total_points} points for completing survey",
+                'message': f"User {user_id} awarded {total_points} points for completing survey",
                 'points': new_points
             }), 200
         
@@ -360,12 +487,12 @@ def change_points(id):
                 }), 404
 
             # Get user data
-            user_response = supabase.table('users').select("points").eq('UID', id).execute()
+            user_response = supabase.table('users').select("points").eq('UID', user_id).execute()
 
             if not user_response.data:
                 return jsonify({
                     'success': False,
-                    'error': f"User with id {id} not found."
+                    'error': f"User with id {user_id} not found."
                 }), 404
                 
             # Update points
@@ -376,11 +503,11 @@ def change_points(id):
             # Update user
             update_response = supabase.table('users').update({
                 'points': new_points
-            }).eq('UID', id).execute()
+            }).eq('UID', user_id).execute()
 
             return jsonify({
                 'success': True,
-                'message': f"User {id} updated with points",
+                'message': f"User {user_id} updated with points",
                 'points': new_points
             }), 200
     except Exception as e:

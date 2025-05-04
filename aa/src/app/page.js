@@ -22,9 +22,11 @@ export default function Home() {
     try {
       setLoading(true);
       console.log(userData);
-      const data = await SurveyAPI.getUserToBeAnsweredSurveys(userData.UID);
+      const data = await SurveyAPI.getUserToBeAnsweredSurveys(
+        localStorage.get("token")
+      );
       setToBeAnsweredSurveys(data);
-      // console.log(data);
+
       return data;
     } catch (err) {
       console.error("Error fetching to-be-answered surveys:", err);
