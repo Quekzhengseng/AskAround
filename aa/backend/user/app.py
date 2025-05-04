@@ -406,38 +406,47 @@ def add_answered_surveys():
     if isinstance(result, tuple):
         return result  # This is an error response
         
-    user_id = result  # This is the successfully decoded user_id
+    user_id = result 
 
     try:
         request_data = request.get_json()
         survey_id = request_data["survey_id"]
 
-        # Check if user exists
-        user_response = supabase.table('users').select("answered_surveys").eq('UID', user_id).execute()
+        # Fetch user data for both answered_surveys and to_be_answered_surveys
+        user_response = supabase.table('users').select("answered_surveys,to_be_answered_surveys").eq('UID', user_id).execute()
         
+        if not user_response.data:
+            return jsonify({
+                'success': False,
+                'error': 'User not found'
+            }), 404
+            
+        # Get user data
+        user_data = user_response.data[0]
+        
+        # Add to answered surveys
         new_survey = {
             'survey_id': survey_id,
             'timestamp': datetime.now(timezone.utc).isoformat()
         }
-
-        if not user_response.data:
-            # Create new user with the answered survey
-            supabase.table('users').insert({
-                'UID': user_id,
-                'answered_surveys': [new_survey]
-            }).execute()
-        else:
-            # Get current answered surveys
-            user_data = user_response.data[0]
-            answered_surveys = user_data.get('answered_surveys', [])
-            
-            # Add new survey
-            answered_surveys.append(new_survey)
-            
-            # Update user
-            supabase.table('users').update({
-                'answered_surveys': answered_surveys
-            }).eq('UID', user_id).execute()
+        
+        # Get current answered surveys
+        answered_surveys = user_data.get('answered_surveys', [])
+        
+        # Add new survey
+        answered_surveys.append(new_survey)
+        
+        # Get current to_be_answered_surveys
+        to_be_answered = user_data.get('to_be_answered_surveys', [])
+        
+        # Filter out the survey we're marking as answered
+        to_be_answered = [item for item in to_be_answered if item.get('survey_id') != survey_id]
+        
+        # Update user with both changes
+        supabase.table('users').update({
+            'answered_surveys': answered_surveys,
+            'to_be_answered_surveys': to_be_answered
+        }).eq('UID', user_id).execute()
 
         return jsonify({
             'success': True,
