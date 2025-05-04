@@ -1,212 +1,186 @@
+# responses-service/app.py
 import os
 import uuid
 import traceback
+import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_apscheduler import APScheduler
-from datetime import datetime, timezone
 from supabase import create_client
 from dotenv import load_dotenv
 from postgrest.exceptions import APIError
 
-# Load environment variables
+# --- Constants and Setup ---
 load_dotenv()
-
 app = Flask(__name__)
-
-# CORS Setup (keep as is)
-CORS(app, resources={r"/*": {
-    "origins": "*",
-    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    "allow_headers": ["Content-Type", "Authorization"]
-}})
-
-# Initialize Supabase (keep as is)
+CORS(app, resources={r"/*": { "origins": "*", "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"], "allow_headers": ["Content-Type", "Authorization"]}})
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
-if not supabase_url or not supabase_key:
-    raise ValueError("Missing Supabase credentials.")
+AUTH_SERVICE_URL = os.getenv("AUTHENTICATION_SERVICE_URL", "http://localhost:5005")
+
+if not supabase_url or not supabase_key: raise ValueError("Missing Supabase credentials.")
 supabase = create_client(supabase_url, supabase_key)
 print("Supabase initialized successfully for Responses Service!")
-
+# ---
 
 # --- Helper Functions ---
 def is_valid_uuid(uuid_to_test, version=4):
-    """ Check if uuid_to_test is a valid UUID. """
     try:
-        uuid_obj = uuid.UUID(uuid_to_test, version=version)
-    except ValueError:
+        uuid.UUID(str(uuid_to_test), version=version) # Ensure input is string
+        return True
+    except (ValueError, TypeError):
         return False
-    return str(uuid_obj) == uuid_to_test
 
 def _check_or_create_user(uid_from_request):
-    """ Checks/creates user. Returns UID string, or (error_message, status_code) tuple."""
-    if not uid_from_request or uid_from_request.strip() == "": # More robust check for blank
+    """ Creates guest user if uid_from_request is blank. Returns UID or error tuple."""
+    # This function is ONLY for the GUEST path now
+    if not uid_from_request or uid_from_request.strip() == "":
         new_uid = str(uuid.uuid4())
-        print(f"Blank UID received. Generating new UID: {new_uid}")
+        print(f"Guest path: Generating new UID: {new_uid}")
         try:
-            new_user_data = {'UID': new_uid, 'username': f'anon_{new_uid[:8]}'} # Adjust schema as needed
+            new_user_data = {'UID': new_uid, 'username': f'anon_{new_uid[:8]}'}
             insert_user_response = supabase.table('users').insert(new_user_data).execute()
             if hasattr(insert_user_response, 'error') and insert_user_response.error:
-                print(f"Failed to insert new user {new_uid}: {insert_user_response.error.message}")
-                return "Database error creating user", 500
-            print(f"Successfully created new user: {new_uid}")
+                 return "Database error creating user", 500
             return new_uid
-        except Exception as e:
-            print(f"Exception creating new user {new_uid}: {e}")
+        except Exception:
             return "Server error creating user", 500
     else:
-        if not is_valid_uuid(uid_from_request):
-             print(f"Invalid UID format received: {uid_from_request}")
-             return "Invalid UID format", 400
-        try:
-            user_check = supabase.table("users").select("UID", count='exact').eq("UID", uid_from_request).execute()
-            if hasattr(user_check, 'error') and user_check.error:
-                print(f"Database error checking user {uid_from_request}: {user_check.error.message}")
-                return "Database error checking user", 500
-            if user_check.count == 0:
-                print(f"Provided non-blank UID not found: {uid_from_request}")
-                return "User not found", 404
-            return uid_from_request
-        except Exception as e:
-            print(f"Exception checking user {uid_from_request}: {e}")
-            return "Server error checking user", 500
+        # Non-guest path is handled by token verification first in the endpoint
+        # This else block should ideally not be reached in the intended flow
+        return "Invalid request: Non-guest UID requires authentication", 401
+
+
+def _get_uid_from_token_via_auth_service(token):
+    """Calls /verify. Returns (UID, None) on success, or (None, (error, status)) on failure."""
+    if not token: return None, ("Token is missing", 401)
+    verify_url = f"{AUTH_SERVICE_URL}/verify"
+    response = requests.post(verify_url, json={"token": token}, timeout=5)
+    # Attempt to parse JSON regardless of status code
+    try:
+        response_data = response.json()
+    except requests.exceptions.JSONDecodeError:
+        # Handle cases where /verify returns non-JSON on error
+        response_data = {"error": f"Auth service returned non-JSON response (Status: {response.status_code})"}
+
+    # Check if the request was successful (2xx status) AND contains the 'id' field
+    if response.ok and response_data.get("id"):
+        verified_uid = response_data["id"]
+        if is_valid_uuid(verified_uid):
+            return verified_uid, None 
+        else:
+
+            print(f"Auth service returned invalid UID format: {verified_uid}")
+            return None, ("Invalid UID format from auth service", 500)
+    else:
+        error_msg = response_data.get("error", "Token is invalid or expired")
+        status_code = response.status_code if response.status_code >= 400 else 401
+        return None, (error_msg, status_code)
 
 # --- API Endpoints ---
 
 @app.route('/responses', methods=['GET'])
 def get_all_responses():
-    """Endpoint to retrieve ALL survey responses"""
     try:
         response = supabase.table("responses").select("*").execute()
-        if hasattr(response, 'error') and response.error:
-            # Log minimal error for server admin
-            print(f"DB Error GET /responses: {response.error.message}")
-            return jsonify({'success': False, 'error': "Database error retrieving responses"}), 500
-
+        if hasattr(response, 'error') and response.error: return jsonify({'success': False, 'error': "DB error"}), 500
         return jsonify({'success': True, 'data': response.data}), 200
-    except Exception as e:
-        print(f"Server Error GET /responses: {e}")
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': "An unexpected server error occurred"}), 500
+    except Exception: return jsonify({'success': False, 'error': "Server error"}), 500
 
 @app.route('/responses', methods=['POST'])
 def create_response():
-    """Create a new response. Creates user if UID is blank."""
+    final_uid = None
+    token = None
     try:
+        # 1. Check Auth Header
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            if auth_header.startswith("Bearer "): token = auth_header.split(" ")[1]
+
+        # 2. Verify Token (if present)
+        if token:
+            verified_uid, error_info = _get_uid_from_token_via_auth_service(token)
+            if error_info: return jsonify({'success': False, 'error': error_info[0]}), error_info[1]
+            final_uid = verified_uid
+            print(f"Authenticated request processed. UID: {final_uid}")
+
+        # 3. Parse Data
         data = request.json
-        if not data or 'survey_id' not in data or 'UID' not in data or 'answers' not in data:
-            return jsonify({'success': False, 'error': 'Missing required fields: survey_id, UID, or answers'}), 400
-
+        if not data or 'survey_id' not in data or 'answers' not in data: return jsonify({'success': False, 'error': 'Missing fields'}), 400
         survey_id = data['survey_id']
-        uid_from_request = data['UID']
         answers = data['answers']
+        uid_from_request = data.get('UID', '')
+        if not is_valid_uuid(survey_id): return jsonify({'success': False, 'error': 'Invalid survey_id format'}), 400
 
-        if not is_valid_uuid(survey_id):
-            return jsonify({'success': False, 'error': 'Invalid survey_id format'}), 400
+        # 4. Determine UID (Guest or Authenticated)
+        if not final_uid: # No valid token processed
+            if not uid_from_request or uid_from_request.strip() == "": # Guest?
+                user_create_result = _check_or_create_user("")
+                if isinstance(user_create_result, tuple): return jsonify({'success': False, 'error': user_create_result[0]}), user_create_result[1]
+                final_uid = user_create_result
+            else: # Non-blank UID without token -> Reject
+                return jsonify({'success': False, 'error': 'Auth required'}), 401
 
-        user_check_result = _check_or_create_user(uid_from_request)
-        if isinstance(user_check_result, tuple):
-            error_message, status_code = user_check_result
-            return jsonify({'success': False, 'error': error_message}), status_code
-        final_uid = user_check_result
+        if not final_uid: return jsonify({'success': False, 'error': 'User ID error'}), 500 # Should not happen
 
-        response_data = {
-            'survey_id_fk': survey_id,
-            'UID_fk': final_uid,
-            'answers': answers,
-        }
-
-        # --- CORRECTED INSERT AND ERROR HANDLING ---
+        # 5. Insert Response
+        response_data = { 'survey_id_fk': survey_id, 'UID_fk': final_uid, 'answers': answers }
         try:
-            # Attempt the insert
-            insert_response = supabase.table('responses').insert(response_data).execute()
-
-            # If .execute() succeeds without raising APIError, it means insertion worked
-            # (Note: The current supabase-py might not return detailed data on success,
-            # but the lack of exception signifies success)
-
+            supabase.table('responses').insert(response_data).execute()
         except APIError as api_error:
-             # Catch the specific APIError raised by .execute() on DB error
-            print(f"DB APIError POST /responses: Code={api_error.code}, Message={api_error.message}")
-            # Check if it's the unique constraint violation
-            if api_error.code == '23505':
-                 return jsonify({'success': False, 'error': 'Response for this survey by this user already exists'}), 409 # Return 409
-            else:
-                 # Handle other potential database API errors
-                 return jsonify({'success': False, 'error': f"Database error: {api_error.message}"}), 500
+            if api_error.code == '23505': return jsonify({'success': False, 'error': 'Already submitted'}), 409
+            else: return jsonify({'success': False, 'error': "DB insert error"}), 500
 
-        # Respond with success, including the final UID used/created
-        return jsonify({
-            'success': True,
-            'data': {
-                'survey_id': response_data['survey_id_fk'],
-                'UID': response_data['UID_fk'], # Return the UID that was actually used
-                'message': 'Response created successfully'
-            }
-        }), 201
+        # 6. Success
+        return jsonify({ 'success': True, 'data': { 'survey_id': survey_id, 'UID': final_uid, 'message': 'Response created' }}), 201
 
-    except Exception as e:
-        print(f"Server Error POST /responses: {e}")
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': "An unexpected server error occurred"}), 500
+    except Exception as e: # Catch JSON errors etc.
+        print(f"POST /responses Error: {type(e).__name__} - {e}")
+        return jsonify({'success': False, 'error': "Server error"}), 500
 
 
 @app.route('/responses/survey/<survey_id>', methods=['GET'])
 def get_responses_by_survey(survey_id):
-    """Endpoint to retrieve all responses for a specific survey"""
-    if not is_valid_uuid(survey_id):
-        return jsonify({'success': False, 'error': 'Invalid survey ID format'}), 400
-
+    # TODO: Add auth?
+    if not is_valid_uuid(survey_id): return jsonify({'success': False, 'error': 'Invalid survey ID format'}), 400
     try:
-        # Fetch responses directly (removed pre-check for survey existence)
         response = supabase.table("responses").select("*").eq("survey_id_fk", survey_id).execute()
-
-        if hasattr(response, 'error') and response.error:
-            print(f"DB Error GET /responses/survey/{survey_id}: {response.error.message}")
-            return jsonify({'success': False, 'error': "Database error retrieving responses"}), 500
-
+        if hasattr(response, 'error') and response.error: return jsonify({'success': False, 'error': "DB error"}), 500
         return jsonify({'success': True, 'data': response.data}), 200
-    except Exception as e:
-        print(f"Server Error GET /responses/survey/{survey_id}: {e}")
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': "An unexpected server error occurred"}), 500
+    except Exception: return jsonify({'success': False, 'error': "Server error"}), 500
 
+@app.route('/responses/survey/<survey_id>/user/<uid_in_url>', methods=['DELETE'])
+def delete_specific_response(survey_id, uid_in_url):
+    # Check Auth Header
+    token = None
+    if 'Authorization' in request.headers:
+        auth_header = request.headers['Authorization']
+        if auth_header.startswith("Bearer "): token = auth_header.split(" ")[1]
+    if not token: return jsonify({'success': False, 'error': 'Auth token required'}), 401
 
-@app.route('/responses/survey/<survey_id>/user/<uid>', methods=['DELETE'])
-def delete_specific_response(survey_id, uid):
-    """Delete a specific response identified by survey_id and user UID"""
-    if not is_valid_uuid(survey_id):
-        return jsonify({'success': False, 'error': 'Invalid survey ID format'}), 400
-    if not is_valid_uuid(uid):
-        return jsonify({'success': False, 'error': 'Invalid UID format'}), 400
+    # Verify Token
+    verified_uid, error_info = _get_uid_from_token_via_auth_service(token)
+    if error_info: return jsonify({'success': False, 'error': error_info[0]}), error_info[1]
 
+    # Authorize
+    if verified_uid != uid_in_url: return jsonify({'success': False, 'error': 'Forbidden'}), 403
+
+    # Validate IDs
+    if not is_valid_uuid(survey_id): return jsonify({'success': False, 'error': 'Invalid survey ID format'}), 400
+    if not is_valid_uuid(uid_in_url): return jsonify({'success': False, 'error': 'Invalid user ID format'}), 400
+
+    # Delete
     try:
-        delete_response = supabase.table('responses').delete()\
-            .eq('survey_id_fk', survey_id)\
-            .eq('UID_fk', uid)\
-            .execute()
-
-        if hasattr(delete_response, 'error') and delete_response.error:
-            print(f"DB Error DELETE /responses/survey/{survey_id}/user/{uid}: {delete_response.error.message}")
-            return jsonify({'success': False, 'error': "Database error deleting response"}), 500
-
-        # Assume success if no error, return 200 OK
-        return jsonify({'success': True, 'message': 'Response deleted successfully'}), 200
-
-    except Exception as e:
-        print(f"Server Error DELETE /responses/survey/{survey_id}/user/{uid}: {e}")
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': "An unexpected server error occurred"}), 500
+        # Use verified_uid for safety, though it matches uid_in_url here
+        delete_response = supabase.table('responses').delete().eq('survey_id_fk', survey_id).eq('UID_fk', verified_uid).execute()
+        if hasattr(delete_response, 'error') and delete_response.error: return jsonify({'success': False, 'error': "DB delete error"}), 500
+        return jsonify({'success': True, 'message': 'Response deleted'}), 200
+    except Exception: return jsonify({'success': False, 'error': "Server error"}), 500
 
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Simple health check endpoint"""
     return jsonify({"status": "healthy"})
-
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5101))
-    # Set debug=True only if actively debugging, otherwise keep False
     app.run(host='0.0.0.0', debug=False, port=port)

@@ -5,6 +5,7 @@ const SURVEY_SERVICE_URL = "http://localhost:5000";
 const USER_SERVICE_URL = "http://localhost:5001";
 const VOUCHER_SERVICE_URL = "http://localhost:5002";
 const AUTHENTICATION_SERVICE_URL = "http://localhost:5005";
+const RESPONSES_SERVICE_URL = "http://localhost:5101";
 
 /**
  * Helper function to handle API requests with dynamic base URL
@@ -220,6 +221,23 @@ export const UserAPI = {
       survey_id: surveyId,
     });
   },
+
+// ResponseAPI 
+submitFullResponse: async (surveyId, userId, answersPayload, token = null) => {
+
+  return await apiRequest(
+      RESPONSES_SERVICE_URL,
+      "/responses",
+      "POST",
+      {
+          survey_id: surveyId,
+          UID: userId, // Send original UID (backend verifies via token if present)
+          answers: answersPayload,
+      },
+      token 
+  );
+},
+
 
   /**
    * Answer a question and update user points in one operation
