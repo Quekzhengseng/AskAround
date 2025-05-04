@@ -40,6 +40,9 @@ def decode(token):
                 'success': False,
                 'error': 'Invalid token format (missing sub)'
             }), 401
+        
+        # Return the user_id when successful
+        return user_id
 
     except jwt.ExpiredSignatureError:
         return jsonify({
@@ -68,9 +71,15 @@ def get_specific_user_data():
             'error': 'Authorization token missing or malformed'
         }), 401
     
+    # Get token from header
     token = auth_header.split(" ")[1]
 
-    user_id = decode(token)
+    # Call decode and check if it returned an error response
+    result = decode(token)
+    if isinstance(result, tuple):
+        return result  # This is an error response
+        
+    user_id = result  # This is the successfully decoded user_id
 
     try:
         response = supabase.table('users').select("*").eq('UID', user_id).execute()
@@ -105,9 +114,15 @@ def get_saved_questions():
             'error': 'Authorization token missing or malformed'
         }), 401
     
+    # Get token from header
     token = auth_header.split(" ")[1]
 
-    user_id = decode(token)
+    # Call decode and check if it returned an error response
+    result = decode(token)
+    if isinstance(result, tuple):
+        return result  # This is an error response
+        
+    user_id = result  # This is the successfully decoded user_id
 
     try:
         response = supabase.table('users').select("saved_questions").eq('UID', user_id).execute()
@@ -142,9 +157,15 @@ def delete_specific_saved_question(num):
             'error': 'Authorization token missing or malformed'
         }), 401
     
+    # Get token from header
     token = auth_header.split(" ")[1]
 
-    user_id = decode(token)
+    # Call decode and check if it returned an error response
+    result = decode(token)
+    if isinstance(result, tuple):
+        return result  # This is an error response
+        
+    user_id = result  # This is the successfully decoded user_id
 
     try:
         response = supabase.table('users').select("*").eq('UID', user_id).execute()
@@ -186,9 +207,15 @@ def add_to_responded():
             'error': 'Authorization token missing or malformed'
         }), 401
     
+    # Get token from header
     token = auth_header.split(" ")[1]
 
-    user_id = decode(token)
+    # Call decode and check if it returned an error response
+    result = decode(token)
+    if isinstance(result, tuple):
+        return result  # This is an error response
+        
+    user_id = result  # This is the successfully decoded user_id
 
     try:
         request_data = request.get_json()
@@ -244,9 +271,15 @@ def get_user_to_be_answered_surveys():
             'error': 'Authorization token missing or malformed'
         }), 401
     
+    # Get token from header
     token = auth_header.split(" ")[1]
 
-    user_id = decode(token)
+    # Call decode and check if it returned an error response
+    result = decode(token)
+    if isinstance(result, tuple):
+        return result  # This is an error response
+        
+    user_id = result  # This is the successfully decoded user_id
     
     try:
         # Get the user data
@@ -300,9 +333,15 @@ def get_user_answered_surveys():
             'error': 'Authorization token missing or malformed'
         }), 401
     
+    # Get token from header
     token = auth_header.split(" ")[1]
 
-    user_id = decode(token)
+    # Call decode and check if it returned an error response
+    result = decode(token)
+    if isinstance(result, tuple):
+        return result  # This is an error response
+        
+    user_id = result  # This is the successfully decoded user_id
 
     try:
         # Get the user data
@@ -359,9 +398,15 @@ def add_answered_surveys():
             'error': 'Authorization token missing or malformed'
         }), 401
     
+    # Get token from header
     token = auth_header.split(" ")[1]
 
-    user_id = decode(token)
+    # Call decode and check if it returned an error response
+    result = decode(token)
+    if isinstance(result, tuple):
+        return result  # This is an error response
+        
+    user_id = result  # This is the successfully decoded user_id
 
     try:
         request_data = request.get_json()
@@ -403,8 +448,8 @@ def add_answered_surveys():
             'error': str(e)
         }), 500
 
-@app.route('/user/next/<id>', methods=['PUT'])
-def change_points(id):
+@app.route('/user/next', methods=['PUT'])
+def change_points():
     """Endpoint to change the points of the user based on the question or survey completion"""
     # 🔐 Get token from Authorization header
     auth_header = request.headers.get('Authorization')
@@ -414,9 +459,15 @@ def change_points(id):
             'error': 'Authorization token missing or malformed'
         }), 401
     
+    # Get token from header
     token = auth_header.split(" ")[1]
 
-    user_id = decode(token)
+    # Call decode and check if it returned an error response
+    result = decode(token)
+    if isinstance(result, tuple):
+        return result  # This is an error response
+        
+    user_id = result  # This is the successfully decoded user_id
 
     try:
         request_data = request.get_json()

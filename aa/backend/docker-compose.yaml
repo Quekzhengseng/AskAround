@@ -8,6 +8,7 @@ services:
     environment:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
     networks:
@@ -22,6 +23,7 @@ services:
     environment:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
     networks:
@@ -36,6 +38,7 @@ services:
     environment:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
     networks:
@@ -50,6 +53,7 @@ services:
     environment:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
     networks:
@@ -63,6 +67,7 @@ services:
     environment:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_KEY=${SUPABASE_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - PYTHONUNBUFFERED=1
     # restart: always
     container_name: survey-publisher

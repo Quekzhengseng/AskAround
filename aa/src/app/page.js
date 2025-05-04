@@ -23,7 +23,7 @@ export default function Home() {
       setLoading(true);
       console.log(userData);
       const data = await SurveyAPI.getUserToBeAnsweredSurveys(
-        localStorage.get("token")
+        localStorage.getItem("token")
       );
       setToBeAnsweredSurveys(data);
 

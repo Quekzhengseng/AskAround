@@ -4,7 +4,7 @@ from flask_cors import CORS
 from supabase import create_client
 from dotenv import load_dotenv
 import jwt
-import datetime
+from datetime import datetime, timezone, timedelta
 import traceback
 
 # Load environment variables
@@ -27,10 +27,11 @@ if not supabase_url or not supabase_key or not jwt_secret_key:
 
 supabase = create_client(supabase_url, supabase_key)
 
-# Helper function to generate JWT token
+# Helper function
 def generate_jwt(user_id: str):
-    current_time = datetime.datetime.utcnow()
-    expiration_time = current_time + datetime.timedelta(days=1)
+    # Fixed datetime references
+    current_time = datetime.utcnow()
+    expiration_time = current_time + timedelta(days=1)
     
     payload = {
         "sub": user_id,
@@ -39,6 +40,37 @@ def generate_jwt(user_id: str):
     }
     
     return jwt.encode(payload, jwt_secret_key, algorithm="HS256")
+
+def decode(token):
+    try:
+        # ✅ Verify token signature and decode
+        decoded_token = jwt.decode(token, jwt_secret_key, algorithms=["HS256"])
+        user_id = decoded_token.get("sub")
+        
+        if not user_id:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid token format (missing sub)'
+            }), 401
+        
+        # Return the user_id when successful
+        return user_id
+
+    except jwt.ExpiredSignatureError:
+        return jsonify({
+            'success': False,
+            'error': 'Token has expired'
+        }), 401
+    except jwt.InvalidTokenError:
+        return jsonify({
+            'success': False,
+            'error': 'Invalid token'
+        }), 401
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f"Unexpected error during token decoding: {str(e)}"
+        }), 500
 
 # Route to handle login
 @app.route('/login', methods=['POST'])
@@ -59,9 +91,6 @@ def login():
 
         # Generate JWT token for the user
         jwt_token = generate_jwt(response.user.id)
-
-        access_token = response.session.access_token
-        refresh_token = response.session.refresh_token
 
         return jsonify({
             "message": "Login successful",
@@ -171,7 +200,8 @@ def reset_password():
             return jsonify({"error": "Password reset failed"}), 400
 
         # Current time - any tokens issued before this are now invalid
-        now = datetime.datetime.utcnow()
+        # Fixed datetime reference
+        now = datetime.utcnow()
         
         # Add or update entry in token_blacklist
         supabase.table("token_blacklist").upsert(
@@ -197,19 +227,32 @@ def reset_password():
 # Route to handle logout
 @app.route('/logout', methods=['POST'])
 def logout():
-    data = request.json
-    token = data.get("token")
+    # 🔐 Get token from Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            'success': False,
+            'error': 'Authorization token missing or malformed'
+        }), 401
+    
+    token = auth_header.split(" ")[1]
+
+    # Use the decode helper function
+    result = decode(token)
+    
+    # Check if decode returned an error response
+    if isinstance(result, tuple):
+        return result  # This is an error response
+        
+    user_id = result  # This is the successfully decoded user_id
     
     if not token:
         return jsonify({"error": "Token is required"}), 400
-    
-    # First decode the token without verification to get user_id and issue time
-    decoded_token = jwt.decode(token, jwt_secret_key, algorithms=["HS256"])
-    user_id = decoded_token.get("sub")
 
     try:
         # Current time - any tokens issued before this are now invalid
-        now = datetime.datetime.utcnow()
+        # Fixed datetime reference
+        now = datetime.utcnow()
         
         # Add or update entry in token_blacklist
         supabase.table("token_blacklist").upsert(
@@ -228,72 +271,84 @@ def logout():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-
 @app.route('/verify', methods=['POST'])
 def verify_jwt():
-    data = request.json
-    token = data.get("token")
+    # 🔐 Get token from Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            'success': False,
+            'error': 'Authorization token missing or malformed'
+        }), 401
+    
+    token = auth_header.split(" ")[1]
     
     if not token:
         return jsonify({"error": "Token is required"}), 400
-
+        
     try:
-        # ✅ Verify token signature and expiration first
-        decoded_token = jwt.decode(token, jwt_secret_key, algorithms=["HS256"])
-        user_id = decoded_token.get("sub")
-        iat = decoded_token.get("iat", 0)
-
-        if not user_id:
-            return jsonify({"error": "Invalid token format (no sub)"}), 401
-
-        # Parse issued-at timestamp
+        # First decode the token without verification to get user_id and issue time
+        unverified_payload = jwt.decode(token, options={"verify_signature": False})
+        user_id = unverified_payload.get("sub")
+        
+        # More robust handling of the issued-at time
+        iat = unverified_payload.get("iat", 0)
         try:
-            token_issue_time = datetime.datetime.fromtimestamp(iat, tz=datetime.timezone.utc)
+            token_issue_time = datetime.fromtimestamp(iat, tz=timezone.utc)
         except (ValueError, TypeError) as e:
             print(f"Error parsing token issue time: {str(e)}, iat value: {iat}")
-            token_issue_time = datetime.datetime.fromtimestamp(0, tz=datetime.timezone.utc)
-
-        print(f"Verified token for user: {user_id}, issued at: {token_issue_time}")
-
-        # 🔒 Check blacklist
+            token_issue_time = datetime.fromtimestamp(0, tz=timezone.utc)  # Fallback
+            
+        if not user_id:
+            return jsonify({"error": "Invalid token format"}), 401
+            
+        print(f"Checking token for user: {user_id}, issued at: {token_issue_time}")
+        
+        # Check if there's a blacklist entry for this user
         try:
             result = supabase.table("token_blacklist").select("valid_after").eq("user_id", user_id).execute()
             print(f"Blacklist result: {result.data}")
             
+            # If user has a blacklist entry, check if token was issued before valid_after time
             if result.data and len(result.data) > 0:
                 valid_after_str = result.data[0]["valid_after"]
                 print(f"Valid after string: {valid_after_str}")
                 
-                # Handle different timestamp formats robustly
-                try:
-                    valid_after = datetime.datetime.fromisoformat(valid_after_str.replace('Z', '+00:00'))
-                except ValueError:
-                    try:
-                        valid_after = datetime.datetime.strptime(valid_after_str, "%Y-%m-%dT%H:%M:%S.%fZ")
-                        valid_after = valid_after.replace(tzinfo=datetime.timezone.utc)
-                    except ValueError:
-                        valid_after = datetime.datetime.strptime(valid_after_str[:19], "%Y-%m-%dT%H:%M:%S")
-                        valid_after = valid_after.replace(tzinfo=datetime.timezone.utc)
-                
+                # Use Approach 1 which worked, but add timezone information
+                valid_after = datetime.fromisoformat(valid_after_str.replace('Z', '+00:00'))
+                # Ensure timezone awareness
+                if valid_after.tzinfo is None:
+                    valid_after = valid_after.replace(tzinfo=timezone.utc)
+                    
                 print(f"Comparing: token issued {token_issue_time} vs valid after {valid_after}")
                 
+                # If token was issued before valid_after, it's invalid
                 if token_issue_time < valid_after:
                     return jsonify({"error": "Token has been invalidated"}), 401
-
+                    
         except Exception as e:
             print(f"Error during blacklist check: {str(e)}")
-            # Optional: return error or continue based on your security policy
-
-        # ✅ Token is valid and not blacklisted
+            traceback.print_exc()
+            # Continue with validation even if blacklist check fails
+            
+        # Now verify the token signature and expiration
+        decoded_token = jwt.decode(token, jwt_secret_key, algorithms=["HS256"])
+        
+        # Token is valid
         return jsonify({"message": "Token is valid", "id": user_id})
-
+        
     except jwt.ExpiredSignatureError:
         return jsonify({"error": "Token has expired"}), 401
     except jwt.InvalidTokenError:
         return jsonify({"error": "Invalid token"}), 401
     except Exception as e:
         print(f"Unexpected error in verify_jwt: {str(e)}")
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "healthy", "service": "authentication"})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True, port=5005)

@@ -16,7 +16,7 @@ export default function PastSurveyTab({ userData }) {
       try {
         setLoading(true);
         const answeredSurveys = await UserAPI.getUserToBeAnsweredSurveys(
-          userData.UID
+          localStorage.getItem("token")
         );
 
         if (userData && userData.answered_surveys) {

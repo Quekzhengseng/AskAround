@@ -19,7 +19,7 @@ export const UseAuth = () => {
     const verifyUser = async () => {
       try {
         const result = await UserAPI.verifyToken(token);
-        const fetchedUserData = await UserAPI.getUserData(result.id);
+        const fetchedUserData = await UserAPI.getUserData(token);
         setUserData(fetchedUserData);
       } catch (err) {
         setError("Invalid token");

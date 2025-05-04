@@ -15,6 +15,7 @@ COPY utils_supabase.py .
 # Create .env file for local development (will be overridden by environment variables)
 RUN echo "SUPABASE_URL=${SUPABASE_URL}" > .env
 RUN echo "SUPABASE_KEY=${SUPABASE_KEY}" >> .env
+RUN echo "JWT_SECRET_KEY=${JWT_SECRET_KEY}" >> .env
 
 # Expose port
 EXPOSE 5000
