@@ -1,8 +1,8 @@
-# responses-service/app.py
 import os
 import uuid
 import traceback
-import requests
+import jwt
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client
@@ -15,24 +15,22 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": { "origins": "*", "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"], "allow_headers": ["Content-Type", "Authorization"]}})
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
-AUTH_SERVICE_URL = os.getenv("AUTHENTICATION_SERVICE_URL", "http://localhost:5005")
-
-if not supabase_url or not supabase_key: raise ValueError("Missing Supabase credentials.")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not supabase_url or not supabase_key or not JWT_SECRET_KEY:
+    raise ValueError("Missing Supabase credentials or JWT Secret Key")
 supabase = create_client(supabase_url, supabase_key)
 print("Supabase initialized successfully for Responses Service!")
-# ---
+
 
 # --- Helper Functions ---
 def is_valid_uuid(uuid_to_test, version=4):
     try:
-        uuid.UUID(str(uuid_to_test), version=version) # Ensure input is string
+        uuid.UUID(str(uuid_to_test), version=version)
         return True
-    except (ValueError, TypeError):
-        return False
+    except (ValueError, TypeError): return False
 
 def _check_or_create_user(uid_from_request):
     """ Creates guest user if uid_from_request is blank. Returns UID or error tuple."""
-    # This function is ONLY for the GUEST path now
     if not uid_from_request or uid_from_request.strip() == "":
         new_uid = str(uuid.uuid4())
         print(f"Guest path: Generating new UID: {new_uid}")
@@ -42,44 +40,42 @@ def _check_or_create_user(uid_from_request):
             if hasattr(insert_user_response, 'error') and insert_user_response.error:
                  return "Database error creating user", 500
             return new_uid
-        except Exception:
-            return "Server error creating user", 500
-    else:
-        # Non-guest path is handled by token verification first in the endpoint
-        # This else block should ideally not be reached in the intended flow
-        return "Invalid request: Non-guest UID requires authentication", 401
+        except Exception: return "Server error creating user", 500
+    else: return "Invalid request: Non-guest UID requires authentication", 401
 
 
-def _get_uid_from_token_via_auth_service(token):
-    """Calls /verify. Returns (UID, None) on success, or (None, (error, status)) on failure."""
+def _verify_and_get_uid_from_token(token):
+    """Verifies JWT locally. Returns (UID, None) on success, or (None, (error, status)) on failure."""
     if not token: return None, ("Token is missing", 401)
-    verify_url = f"{AUTH_SERVICE_URL}/verify"
-    response = requests.post(verify_url, json={"token": token}, timeout=5)
-    # Attempt to parse JSON regardless of status code
+    if not JWT_SECRET_KEY: return None, ("Server authentication configuration error", 500)
+
     try:
-        response_data = response.json()
-    except requests.exceptions.JSONDecodeError:
-        # Handle cases where /verify returns non-JSON on error
-        response_data = {"error": f"Auth service returned non-JSON response (Status: {response.status_code})"}
+        decoded_token = jwt.decode(token, JWT_SECRET_KEY, algorithms=["HS256"]) # Use your algorithm
+        user_id = decoded_token.get("sub")
 
-    # Check if the request was successful (2xx status) AND contains the 'id' field
-    if response.ok and response_data.get("id"):
-        verified_uid = response_data["id"]
-        if is_valid_uuid(verified_uid):
-            return verified_uid, None 
-        else:
+        if not user_id:
+            return None, ('Invalid token format (missing sub)', 401)
+        if not is_valid_uuid(user_id): # Validate format
+            return None, ('Invalid UID format in token', 401)
 
-            print(f"Auth service returned invalid UID format: {verified_uid}")
-            return None, ("Invalid UID format from auth service", 500)
-    else:
-        error_msg = response_data.get("error", "Token is invalid or expired")
-        status_code = response.status_code if response.status_code >= 400 else 401
-        return None, (error_msg, status_code)
+
+        return user_id, None # Success
+
+    except ExpiredSignatureError:
+        return None, ('Token has expired', 401)
+    except InvalidTokenError as e: # Catches various JWT format/signature errors
+        print(f"Invalid Token Error: {e}") # Log the specific JWT error
+        return None, ('Invalid token', 401)
+    except Exception as e: # Catch-all for unexpected errors
+        print(f"Unexpected error during token decoding: {e}")
+        return None, ("Internal error during token verification", 500)
+
 
 # --- API Endpoints ---
 
 @app.route('/responses', methods=['GET'])
 def get_all_responses():
+    # ... (no changes needed unless GET needs auth) ...
     try:
         response = supabase.table("responses").select("*").execute()
         if hasattr(response, 'error') and response.error: return jsonify({'success': False, 'error': "DB error"}), 500
@@ -96,12 +92,15 @@ def create_response():
             auth_header = request.headers['Authorization']
             if auth_header.startswith("Bearer "): token = auth_header.split(" ")[1]
 
-        # 2. Verify Token (if present)
+        # 2. Verify Token (if present) using LOCAL verification
         if token:
-            verified_uid, error_info = _get_uid_from_token_via_auth_service(token)
-            if error_info: return jsonify({'success': False, 'error': error_info[0]}), error_info[1]
+            # Use the new direct verification helper
+            verified_uid, error_info = _verify_and_get_uid_from_token(token)
+            if error_info:
+                return jsonify({'success': False, 'error': error_info[0]}), error_info[1]
             final_uid = verified_uid
-            print(f"Authenticated request processed. UID: {final_uid}")
+            print(f"Authenticated request processed. UID from token: {final_uid}")
+        # else: No token provided, proceed to check request body / guest flow
 
         # 3. Parse Data
         data = request.json
@@ -111,7 +110,7 @@ def create_response():
         uid_from_request = data.get('UID', '')
         if not is_valid_uuid(survey_id): return jsonify({'success': False, 'error': 'Invalid survey_id format'}), 400
 
-        # 4. Determine UID (Guest or Authenticated)
+        # 4. Determine Final UID (Guest or Authenticated)
         if not final_uid: # No valid token processed
             if not uid_from_request or uid_from_request.strip() == "": # Guest?
                 user_create_result = _check_or_create_user("")
@@ -120,7 +119,7 @@ def create_response():
             else: # Non-blank UID without token -> Reject
                 return jsonify({'success': False, 'error': 'Auth required'}), 401
 
-        if not final_uid: return jsonify({'success': False, 'error': 'User ID error'}), 500 # Should not happen
+        if not final_uid: return jsonify({'success': False, 'error': 'User ID error'}), 500
 
         # 5. Insert Response
         response_data = { 'survey_id_fk': survey_id, 'UID_fk': final_uid, 'answers': answers }
@@ -133,7 +132,7 @@ def create_response():
         # 6. Success
         return jsonify({ 'success': True, 'data': { 'survey_id': survey_id, 'UID': final_uid, 'message': 'Response created' }}), 201
 
-    except Exception as e: # Catch JSON errors etc.
+    except Exception as e:
         print(f"POST /responses Error: {type(e).__name__} - {e}")
         return jsonify({'success': False, 'error': "Server error"}), 500
 
@@ -150,15 +149,14 @@ def get_responses_by_survey(survey_id):
 
 @app.route('/responses/survey/<survey_id>/user/<uid_in_url>', methods=['DELETE'])
 def delete_specific_response(survey_id, uid_in_url):
-    # Check Auth Header
     token = None
     if 'Authorization' in request.headers:
         auth_header = request.headers['Authorization']
         if auth_header.startswith("Bearer "): token = auth_header.split(" ")[1]
     if not token: return jsonify({'success': False, 'error': 'Auth token required'}), 401
 
-    # Verify Token
-    verified_uid, error_info = _get_uid_from_token_via_auth_service(token)
+    # Verify Token using LOCAL verification
+    verified_uid, error_info = _verify_and_get_uid_from_token(token)
     if error_info: return jsonify({'success': False, 'error': error_info[0]}), error_info[1]
 
     # Authorize
@@ -170,7 +168,6 @@ def delete_specific_response(survey_id, uid_in_url):
 
     # Delete
     try:
-        # Use verified_uid for safety, though it matches uid_in_url here
         delete_response = supabase.table('responses').delete().eq('survey_id_fk', survey_id).eq('UID_fk', verified_uid).execute()
         if hasattr(delete_response, 'error') and delete_response.error: return jsonify({'success': False, 'error': "DB delete error"}), 500
         return jsonify({'success': True, 'message': 'Response deleted'}), 200

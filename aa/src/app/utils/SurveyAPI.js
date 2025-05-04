@@ -222,22 +222,64 @@ export const UserAPI = {
     });
   },
 
-// ResponseAPI 
-submitFullResponse: async (surveyId, userId, answersPayload, token = null) => {
+  // ResponseAPI 
+  submitFullResponse: async (surveyId, userId, answersPayload, token = null) => {
+    const endpoint = "/responses";
+    const url = `${RESPONSES_SERVICE_URL}${endpoint}`;
+    const method = "POST";
+    const payload = { 
+        survey_id: surveyId,
+        UID: userId,
+        answers: answersPayload,
+    };
 
-  return await apiRequest(
-      RESPONSES_SERVICE_URL,
-      "/responses",
-      "POST",
-      {
-          survey_id: surveyId,
-          UID: userId, // Send original UID (backend verifies via token if present)
-          answers: answersPayload,
-      },
-      token 
-  );
-},
+    console.log(`Calling Directly: ${method} ${url}`);
 
+    const headers = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+    };
+
+    // Add Authorization header ONLY if a token is provided
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        console.log(">>> submitFullResponse: Authorization header ADDED");
+    } else {
+        console.log(">>> submitFullResponse: Authorization header NOT added (no token)");
+    }
+
+    const options = {
+        method: method,
+        headers: headers,
+        body: JSON.stringify(payload), 
+    };
+
+    try {
+        const response = await fetch(url, options);
+
+        // Try to parse JSON, handle errors/non-JSON
+        const contentType = response.headers.get("content-type");
+        let responseData;
+        if (contentType && contentType.includes("application/json")) {
+           try { responseData = await response.json(); }
+           catch (e) { responseData = { error: "Invalid JSON response", _status: response.status }; }
+        } else { responseData = { _status: response.status }; }
+
+        if (!response.ok) {
+          const errorMessage = responseData?.error || response.statusText || `HTTP error ${response.status}`;
+          console.error(`Direct API Error (${url}): Status ${response.status}, Message: ${errorMessage}`, responseData);
+          const error = new Error(errorMessage);
+          error.status = response.status;
+          error.data = responseData;
+          throw error;
+        }
+        // Return parsed JSON data on success
+        return responseData;
+
+    } catch (error) {
+        console.error(`Direct Fetch/Processing Error (${endpoint}):`, error);
+        throw error;
+    }},
 
   /**
    * Answer a question and update user points in one operation

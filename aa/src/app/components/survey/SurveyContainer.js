@@ -36,6 +36,7 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
 
     initializeUserData();
   }, [userId]);
+  
 
   // Make sure we have questions
   if (!survey || !survey.questions || survey.questions.length === 0) {
@@ -117,28 +118,58 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
 
     setIsSubmitting(true);
     setError(null);
-
+    let token = null;
+    if (userId !== "") { // Only get token if not a guest user
+        try {
+            token = localStorage.getItem('token'); // Use your actual key name
+            if (!token) {
+              console.warn(`No token found in localStorage for user ${userId}. Proceeding without auth header.`);
+            }
+        } catch (e) { console.error("Error accessing localStorage for token:", e); }
+    }
     try {
       // Save final answer if needed
       if (hasAnswer && currentQuestion.addable) {
         await saveCurrentAnswer();
       }
 
+      try {
+        const answersPayload = survey.questions.map(q => ({
+          question_id: q.id,
+          response: answers[q.id] !== undefined ? answers[q.id] : null // Use answer from state or null
+        }));
+        console.log("TOKENN", token)
+        console.log("Attempting to submit full response set:", { surveyId: survey.survey_id, userId: userId, answers: answersPayload.length });
+
+        await UserAPI.submitFullResponse(
+          survey.survey_id,
+          userId, // Pass the userId prop (backend handles blank/auth)
+          answersPayload,
+          token // Pass the retrieved token
+        );
+        console.log("Successfully submitted full response set to responses service.");
+
+    } catch (responseApiError) {
+        console.error("Error submitting full response set:", responseApiError);
+        throw new Error(`Failed to record full response: ${responseApiError?.response?.error || responseApiError.message}`);
+    }
+
       // Show achievement animation
+
       setAchievementCount((prev) => prev + 1);
       setShowAchievement(true);
-
       // Mark survey as completed
       setSurveyCompleted(true);
-
       // Call onComplete callback after a delay to show achievement
       setTimeout(() => {
         if (onComplete) onComplete();
       }, 2500);
+
     } catch (err) {
-      console.error("Error submitting survey:", err);
-      setError("There was a problem submitting your survey. Please try again.");
+      console.error("Error during final survey submission steps:", err);
+      setError(err.message || "There was a problem submitting your survey. Please try again."); 
     } finally {
+      // Keep existing logic
       setIsSubmitting(false);
     }
   };
