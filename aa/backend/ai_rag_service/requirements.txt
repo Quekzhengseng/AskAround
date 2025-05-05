@@ -7,3 +7,5 @@ supabase==2.15.1
 
 # For JWT support
 pyjwt==2.6.0
+
+openai==1.76.0
