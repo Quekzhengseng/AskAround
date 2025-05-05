@@ -250,22 +250,23 @@ export const UserAPI = {
   },
 
   // ResponseAPI
-  submitFullResponse: async (
-    surveyId,
-    userId,
-    answersPayload,
-    token = null
-  ) => {
-    return await apiRequest(
-      RESPONSES_SERVICE_URL,
-      "/responses",
-      "POST",
-      {
+  submitFullResponse: async (surveyId, userId, answersPayload, token = null) => {
+    const payload = {
         survey_id: surveyId,
-        UID: userId,
         answers: answersPayload,
-      },
-      token
+    };
+
+    if (!token) {
+        payload.UID = ""; 
+        console.log("No token provided, adding UID:\"\" to payload for guest identification.");
+    } 
+
+    return await apiRequest(
+        RESPONSES_SERVICE_URL,
+        "/responses",
+        "POST",
+        payload,
+        token
     );
   },
 
