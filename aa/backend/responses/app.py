@@ -59,7 +59,7 @@ def _verify_and_get_uid_from_token(token):
             return None, ('Invalid UID format in token', 401)
 
 
-        return user_id, None # Success
+        return user_id, None 
 
     except ExpiredSignatureError:
         return None, ('Token has expired', 401)
@@ -112,14 +112,16 @@ def create_response():
 
         # 4. Determine Final UID (Guest or Authenticated)
         if not final_uid: # No valid token processed
-            if not uid_from_request or uid_from_request.strip() == "": # Guest?
+            # Check body for UID to see if it's a guest or invalid attempt
+            # --- Use .get() with default for uid_from_request ---
+            uid_from_request = data.get('UID', '')
+            # ---
+            if not uid_from_request or uid_from_request.strip() == "": # Guest? (Handles missing key or blank value)
                 user_create_result = _check_or_create_user("")
                 if isinstance(user_create_result, tuple): return jsonify({'success': False, 'error': user_create_result[0]}), user_create_result[1]
                 final_uid = user_create_result
-            else: # Non-blank UID without token -> Reject
+            else: # Non-blank UID in body WITHOUT valid token -> Reject
                 return jsonify({'success': False, 'error': 'Auth required'}), 401
-
-        if not final_uid: return jsonify({'success': False, 'error': 'User ID error'}), 500
 
         # 5. Insert Response
         response_data = { 'survey_id_fk': survey_id, 'UID_fk': final_uid, 'answers': answers }
