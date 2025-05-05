@@ -1,6 +1,7 @@
 // app/profile/components/ProfileTab.jsx
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { UserAPI } from "../../utils/SurveyAPI";
 
 export default function ProfileTab({ userData }) {
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -21,6 +22,14 @@ export default function ProfileTab({ userData }) {
     setIsDeleting(true);
     setError(null);
 
+    UserAPI.deleteAccount(localStorage.getItem("token"));
+
+    // Remove tokens from localStorage
+    localStorage.removeItem("token");
+    localStorage.removeItem("profileActiveTab");
+
+    // Redirect to login page
+    router.push("/login");
     try {
     } catch (err) {
       console.error("Error deleting account:", err);

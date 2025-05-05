@@ -116,6 +116,21 @@ export const UserAPI = {
   },
 
   /**
+   * Delete Account
+   */
+  deleteAccount: async (token) => {
+    // Updated to send token in Authorization header
+    const response = await apiRequest(
+      USER_SERVICE_URL,
+      "/deleteAccount",
+      "DELETE",
+      null,
+      token
+    );
+    return response;
+  },
+
+  /**
    * Get user data
    */
   getUserData: async (token) => {
@@ -250,23 +265,30 @@ export const UserAPI = {
   },
 
   // ResponseAPI
-  submitFullResponse: async (surveyId, userId, answersPayload, token = null) => {
+  submitFullResponse: async (
+    surveyId,
+    userId,
+    answersPayload,
+    token = null
+  ) => {
     const payload = {
-        survey_id: surveyId,
-        answers: answersPayload,
+      survey_id: surveyId,
+      answers: answersPayload,
     };
 
     if (!token) {
-        payload.UID = ""; 
-        console.log("No token provided, adding UID:\"\" to payload for guest identification.");
-    } 
+      payload.UID = "";
+      console.log(
+        'No token provided, adding UID:"" to payload for guest identification.'
+      );
+    }
 
     return await apiRequest(
-        RESPONSES_SERVICE_URL,
-        "/responses",
-        "POST",
-        payload,
-        token
+      RESPONSES_SERVICE_URL,
+      "/responses",
+      "POST",
+      payload,
+      token
     );
   },
 

@@ -615,6 +615,75 @@ def add_to_be_answered_surveys():
             'success': False,
             'error': str(e)
         }), 500
+    
+@app.route('/deleteAccount', methods=['DELETE'])
+def delete_user_data():
+    """
+    Delete all data related to a specific user across all tables
+    
+    Args:
+        supabase: Initialized Supabase client
+        user_id: The user's UID to delete
+    
+    Returns:
+        dict: Result with success status and details
+    """
+    results = {
+        "success": True,
+        "details": {}
+    }
+
+    # 🔐 Get token from Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            'success': False,
+            'error': 'Authorization token missing or malformed'
+        }), 401
+    
+    # Get token from header
+    token = auth_header.split(" ")[1]
+
+    # Call decode and check if it returned an error response
+    result = decode(token)
+    if isinstance(result, tuple):
+        return result  # This is an error response
+        
+    user_id = result  # This is the successfully decoded user_id
+    
+    try:
+        # 1. Delete from answer-rag table
+        answer_rag_result = supabase.table('answer-rag').delete().eq('uid_fk', user_id).execute()
+        results["details"]["answer_rag_deleted"] = len(answer_rag_result.data) if answer_rag_result.data else 0
+        
+        # 2. Delete from responses table
+        responses_result = supabase.table('responses').delete().eq('UID_fk', user_id).execute()
+        results["details"]["responses_deleted"] = len(responses_result.data) if responses_result.data else 0
+        
+        # 3. Delete any blacklisted tokens
+        token_result = supabase.table('token_blacklist').delete().eq('user_id', user_id).execute()
+        results["details"]["tokens_deleted"] = len(token_result.data) if token_result.data else 0
+        
+        # 4. Delete from users table
+        user_result = supabase.table('users').delete().eq('UID', user_id).execute()
+        results["details"]["user_deleted"] = len(user_result.data) if user_result.data else 0
+        
+        # 5. Delete user from auth table - requires service role key
+        try:
+            auth_result = supabase.auth.admin.delete_user(user_id)
+            results["details"]["auth_deleted"] = True
+        except Exception as auth_error:
+            results["details"]["auth_deletion_error"] = str(auth_error)
+            # Continue with the process even if auth deletion fails
+        
+        return results
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "details": results.get("details", {})
+        }
 
 @app.route('/health', methods=['GET'])
 def health_check():

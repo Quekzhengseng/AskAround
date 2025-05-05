@@ -149,6 +149,51 @@ def get_responses_by_survey(survey_id):
         return jsonify({'success': True, 'data': response.data}), 200
     except Exception: return jsonify({'success': False, 'error': "Server error"}), 500
 
+@app.route('/responses/survey/<survey_id>', methods=['GET'])
+def get_responses_by_survey_and_user(survey_id):
+    token = None
+    if 'Authorization' in request.headers:
+        auth_header = request.headers['Authorization']
+        if auth_header.startswith("Bearer "): token = auth_header.split(" ")[1]
+    if not token: return jsonify({'success': False, 'error': 'Auth token required'}), 401
+
+    # Verify Token using LOCAL verification
+    verified_uid, error_info = _verify_and_get_uid_from_token(token)
+    if error_info: return jsonify({'success': False, 'error': error_info[0]}), error_info[1]
+
+    try:
+        response = supabase.table("responses").select("*").eq("survey_id_fk", survey_id).eq("UID_fk", verified_uid).execute()
+        if hasattr(response, 'error') and response.error: return jsonify({'success': False, 'error': "DB error"}), 500
+        return jsonify({'success': True, 'data': response.data.questions}), 200
+    except Exception: return jsonify({'success': False, 'error': "Server error"}), 500
+
+@app.route('/responses/survey/<survey_id>', methods=['PUT'])
+def save_responses_by_survey_and_user(survey_id):
+    token = None
+    if 'Authorization' in request.headers:
+        auth_header = request.headers['Authorization']
+        if auth_header.startswith("Bearer "): token = auth_header.split(" ")[1]
+    if not token: return jsonify({'success': False, 'error': 'Auth token required'}), 401
+
+    # Verify Token using LOCAL verification
+    verified_uid, error_info = _verify_and_get_uid_from_token(token)
+    if error_info: return jsonify({'success': False, 'error': error_info[0]}), error_info[1]
+
+    try:
+        request_data = request.get_json()
+        answer_data = request_data.get("answers")
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+    try:
+        response = supabase.table("responses").update({"answers" : answer_data}).eq("survey_id_fk", survey_id).eq("UID_fk", verified_uid).execute()
+        if hasattr(response, 'error') and response.error: return jsonify({'success': False, 'error': "DB error"}), 500
+        return jsonify({'success': True}), 200
+    except Exception: return jsonify({'success': False, 'error': "Server error"}), 500
+
 @app.route('/responses/survey/<survey_id>/user/<uid_in_url>', methods=['DELETE'])
 def delete_specific_response(survey_id, uid_in_url):
     token = None
