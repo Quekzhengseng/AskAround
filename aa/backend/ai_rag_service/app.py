@@ -3,7 +3,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
 from dotenv import load_dotenv
-import jwt
 from openai import OpenAI
 
 # Load environment variables
@@ -21,15 +20,18 @@ CORS(app, resources={r"/*": {
 # Initialize Supabase
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
-jwt_secret_key = os.getenv("JWT_SECRET_KEY")
 
-if not supabase_url or not supabase_key or not jwt_secret_key:
-    raise ValueError("Missing Supabase credentials or JWT Secret Key")
+if not supabase_url or not supabase_key:
+    raise ValueError("Missing Supabase credentials")
 
 supabase_client: Client = create_client(supabase_url, supabase_key)
 
 # Initialize openai
 openai_key = os.getenv("OPENAI_API_KEY")
+
+if not openai_key:
+    raise ValueError("Missing OpenAI API key")
+
 openai_client = OpenAI(api_key=openai_key)
 OPEN_AI_EMBEDDING_MODEL = "text-embedding-ada-002"
 OPEN_AI_ENCODING_FORMAT = "float"
@@ -70,7 +72,7 @@ def query_text_for_user():
             return jsonify({
                 'success': True,
                 'result': "No similar documents found - vector store may be empty"
-            }), 204
+            }), 200
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         return jsonify({
