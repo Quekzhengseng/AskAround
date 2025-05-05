@@ -98,7 +98,7 @@ def addable():
         }
         
         # API call to add to answered 
-        response = request.post("http://survey-service:5000/addSurvey", json=data)
+        response = request.post("http://user-service:5000/addSurvey", json=data)
 
         if not response.data:
                 return jsonify({
