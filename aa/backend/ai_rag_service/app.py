@@ -1,15 +1,17 @@
 import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from supabase import create_client
+from supabase import create_client, Client
 from dotenv import load_dotenv
 import jwt
-from datetime import datetime, timezone, timedelta
-import traceback
+from openai import OpenAI
 
 # Load environment variables
 load_dotenv()
 
+print("Starting up ai_rag_service")
+
+openai_key = os.getenv("OPENAI_API_KEY")
 app = Flask(__name__)
 CORS(app, resources={r"/*": {
     "origins": "*",
@@ -22,10 +24,38 @@ supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
 jwt_secret_key = os.getenv("JWT_SECRET_KEY")
 
+openai_client = OpenAI(api_key=openai_key)
+
+input = "Hello World Test Test"
+model = "text-embedding-ada-002"
+encoding_format = "float"
+
+response = openai_client.embeddings.create(
+    input=input, model=model, encoding_format=encoding_format
+)
+
+embedding = response.data[0].embedding
+
+print("Successfully Generated Embedding for: ", input)
+print("Embedding length: ", len(embedding))
+
 if not supabase_url or not supabase_key or not jwt_secret_key:
     raise ValueError("Missing Supabase credentials or JWT Secret Key")
 
-supabase = create_client(supabase_url, supabase_key)
+supabase: Client = create_client(supabase_url, supabase_key)
+
+# survey_id = "15839a26-7a4c-474c-adf0-61ddeb5e48fe"
+# uid = "0b211997-822d-4a87-a555-22fde1da75cc"
+
+# supabase.table('answer-rag').insert(
+#     {
+#         "survey_id_fk": survey_id,
+#         "uid_fk": uid,
+#         "vector": embedding,
+#         "response": input,
+#         "question_id": "q_local_1746419841695_3scel"
+#     }
+# ).execute()
 
 def decode(token):
     try:
@@ -105,9 +135,6 @@ def recsys():
             .execute()
         
         users = user_response.data
-        
-        for user in users:
-            
 
         return jsonify({
             'success': True,
