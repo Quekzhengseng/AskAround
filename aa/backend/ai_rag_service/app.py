@@ -11,7 +11,6 @@ load_dotenv()
 
 print("Starting up ai_rag_service")
 
-openai_key = os.getenv("OPENAI_API_KEY")
 app = Flask(__name__)
 CORS(app, resources={r"/*": {
     "origins": "*",
@@ -24,38 +23,16 @@ supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
 jwt_secret_key = os.getenv("JWT_SECRET_KEY")
 
-openai_client = OpenAI(api_key=openai_key)
-
-input = "Hello World Test Test"
-model = "text-embedding-ada-002"
-encoding_format = "float"
-
-response = openai_client.embeddings.create(
-    input=input, model=model, encoding_format=encoding_format
-)
-
-embedding = response.data[0].embedding
-
-print("Successfully Generated Embedding for: ", input)
-print("Embedding length: ", len(embedding))
-
 if not supabase_url or not supabase_key or not jwt_secret_key:
     raise ValueError("Missing Supabase credentials or JWT Secret Key")
 
 supabase: Client = create_client(supabase_url, supabase_key)
 
-# survey_id = "15839a26-7a4c-474c-adf0-61ddeb5e48fe"
-# uid = "0b211997-822d-4a87-a555-22fde1da75cc"
-
-# supabase.table('answer-rag').insert(
-#     {
-#         "survey_id_fk": survey_id,
-#         "uid_fk": uid,
-#         "vector": embedding,
-#         "response": input,
-#         "question_id": "q_local_1746419841695_3scel"
-#     }
-# ).execute()
+# Initialize openai
+openai_key = os.getenv("OPENAI_API_KEY")
+openai_client = OpenAI(api_key=openai_key)
+OPEN_AI_EMBEDDING_MODEL = "text-embedding-ada-002"
+OPEN_AI_ENCODING_FORMAT = "float"
 
 def decode(token):
     try:
@@ -145,10 +122,57 @@ def recsys():
             'error': str(e)
         }), 500
 
+@app.route('/query_text_for_user', methods=['POST'])
+def query_text_for_user():
+    data = request.get_json()
+    query_text = data.get("query_text")
+    user_id = data.get("user_id", None)
+
+    response = openai_client.embeddings.create(
+        input=query_text,
+        model=OPEN_AI_EMBEDDING_MODEL,
+        encoding_format=OPEN_AI_ENCODING_FORMAT
+    )
+    embedding = response.data[0].embedding
+    
+    try:
+        response = supabase.rpc('cosine_similarity_search_with_user',
+            {
+                'query_embedding': embedding,
+                "user_id": user_id,
+                'match_count': 20
+        }
+        ).execute()
+        
+        if response.data:
+            most_similar_documents = response.data
+            print("Most similar documents:")
+            for doc in most_similar_documents:
+                print(f"Response: {doc['response']}, Similarity (Distance): {doc['similarity']}")
+            return jsonify({
+                'success': True,
+                'result': response.data
+            }), 200
+        else:
+            print("No similar documents found - vector store may be empty")
+            return jsonify({
+                'success': True,
+                'result': "No similar documents found - vector store may be empty"
+            }), 200
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+    
 
 @app.route('/health', methods=['GET'])
-def health_check():
-    return jsonify({"status": "healthy", "service": "authentication"})
+def health():
+    return jsonify({
+        'success': True,
+        'message': 'AI RAG service is healthy'
+    }), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True, port=5008)
