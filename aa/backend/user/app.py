@@ -575,6 +575,46 @@ def change_points():
             'success': False,
             'error': str(e)
         }), 500
+    
+@app.route('/addSurveys', methods=['POST'])
+def add_to_be_answered_surveys():
+    """Endpoint to add survey to specific user's to be answered survey databank to track survey movement"""
+    try:
+        request_data = request.get_json()
+        user_id = request_data.get("user_id")
+        survey_id = request_data.get("survey.id")
+
+        # Fetch user data for both answered_surveys and to_be_answered_surveys
+        user_response = supabase.table('users').select("to_be_answered_surveys").eq('UID', user_id).execute()
+        
+        if not user_response.data:
+            return jsonify({
+                'success': False,
+                'error': 'User not found'
+            }), 404
+        
+        # Get user data
+        user_data = user_response.data[0]
+        
+        # Get current to_be_answered_surveys
+        to_be_answered = user_data.get('to_be_answered_surveys', [])
+        
+        # Filter out the survey we're marking as answered
+        to_be_answered.append(survey_id)
+        
+        # Update user with both changes
+        supabase.table('users').update({
+            'to_be_answered_surveys': to_be_answered
+        }).eq('UID', user_id).execute()
+
+        return jsonify({
+            'success': True,
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/health', methods=['GET'])
 def health_check():

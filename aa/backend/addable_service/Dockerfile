@@ -17,7 +17,7 @@ RUN echo "SUPABASE_KEY=${SUPABASE_KEY}" >> .env
 RUN echo "JWT_SECRET_KEY=${JWT_SECRET_KEY}" >> .env
 
 # Expose port
-EXPOSE 5008
+EXPOSE 5009
 
 # Run the application
 CMD ["python", "app.py"]

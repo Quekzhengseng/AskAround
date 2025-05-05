@@ -27,91 +27,90 @@ if not supabase_url or not supabase_key or not jwt_secret_key:
 
 supabase = create_client(supabase_url, supabase_key)
 
-def decode(token):
-    try:
-        # ✅ Verify token signature and decode
-        decoded_token = jwt.decode(token, jwt_secret_key, algorithms=["HS256"])
-        user_id = decoded_token.get("sub")
-        
-        if not user_id:
-            return jsonify({
-                'success': False,
-                'error': 'Invalid token format (missing sub)'
-            }), 401
-        
-        # Return the user_id when successful
-        return user_id
-
-    except jwt.ExpiredSignatureError:
-        return jsonify({
-            'success': False,
-            'error': 'Token has expired'
-        }), 401
-    except jwt.InvalidTokenError:
-        return jsonify({
-            'success': False,
-            'error': 'Invalid token'
-        }), 401
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f"Unexpected error during token decoding: {str(e)}"
-        }), 500
-
-@app.route('/recsys', methods=['POST'])
-def recsys():
-    """Endpoint to recommend surveys to users"""
-    # 🔐 Get token from Authorization header
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return jsonify({
-            'success': False,
-            'error': 'Authorization token missing or malformed'
-        }), 401
-    
-    # Get token from header
-    token = auth_header.split(" ")[1]
-
-    # Call decode and check if it returned an error response
-    result = decode(token)
-    if isinstance(result, tuple):
-        return result  # This is an error response
-        
-    user_id = result  # This is the successfully decoded user_id
-
+@app.route('/addable', methods=['POST'])
+def addable():
+    """Endpoint to update responses and mark unanswered questions as addable"""
     try:
         request_data = request.get_json()
+        user_id = request_data.get("user_id")
+        survey_id = request_data.get("survey_id")
+        
+        if not user_id and not survey_id:
+            return jsonify({
+                'success':False,
+                'error': "Missing key parameter"
+            }), 400
+        
+        # First check if response exists
+        user_response = supabase.table('responses')\
+        .select("*")\
+        .eq('survey_id_fk', survey_id)\
+        .eq('UID_fk', user_id)\
+        .execute()
 
-        survey_id = request_data["survey_id"]
-
-        # First check if survey exists
-        survey_response = supabase.table('surveys').select("*").eq('survey_id', survey_id).execute()
-        if not survey_response.data:
+        if not user_response.data:
             return jsonify({
                 'success': False,
-                'error': f"Survey with id {survey_id} not found."
+                'error': f"Response with keys not found."
             }), 404
         
-        # INCLUDE RECSYS SYSTEM HERE, for now skip this to recommend to x amount of users
+        # Get the current response data
+        response_data = user_response.data[0]
         
-        # Retrieve num of users to propagate the survey to, change default to 0 once in production
-        num_users = survey_response[0].get("num_users", 50)
-
-        # Get random users from the database
-        user_response = supabase.table('users') \
-            .select("*") \
-            .order('random()') \
-            .limit(num_users) \
-            .execute()
+        # Get the answers array
+        answers = response_data.get('answers', [])
         
-        users = user_response.data
-        
-        for user in users:
+        # Iterate through answers and check for empty responses
+        for answer in answers:
+            # Check if the response is empty
+            response_value = answer.get('response')
             
+            # Check different types of empty responses
+            is_empty = (
+                response_value is None or
+                response_value == "" or
+                (isinstance(response_value, list) and len(response_value) == 0)
+            )
+            
+            # Add addable attribute if response is empty
+            if is_empty:
+                answer['addable'] = True
+            else:
+                # Make sure addable is False or not present for answered questions
+                answer['addable'] = False
+        
+        # Update the response in the database
+        update_response = supabase.table('responses').update({
+            'answers': answers
+        }).eq('survey_id_fk', survey_id)\
+          .eq('UID_fk', user_id)\
+          .execute()
+        
+        if not update_response.data:
+            return jsonify({
+                'success': False,
+                'error': "Failed to update responses"
+            }), 500
+        
+        data = {
+            "user_id" : user_id,
+            "survey_id" : survey_id
+        }
+        
+        # API call to add to answered 
+        response = request.post("http://survey-service:5000/addSurvey", json=data)
 
+        if not response.data:
+                return jsonify({
+                    'success': False,
+                    'error': "Failed to transfer to to be answered survey"
+                }), 500
+        
         return jsonify({
             'success': True,
+            'data': answers
         }), 200
+        
     except Exception as e:
         return jsonify({
             'success': False,
@@ -124,4 +123,4 @@ def health_check():
     return jsonify({"status": "healthy", "service": "authentication"})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True, port=5006)
+    app.run(host='0.0.0.0', debug=True, port=5009)

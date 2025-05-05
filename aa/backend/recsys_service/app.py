@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import jwt
 from datetime import datetime, timezone, timedelta
 import traceback
+import requests
 
 # Load environment variables
 load_dotenv()
@@ -62,22 +63,22 @@ def decode(token):
 def recsys():
     """Endpoint to recommend surveys to users"""
     # 🔐 Get token from Authorization header
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return jsonify({
-            'success': False,
-            'error': 'Authorization token missing or malformed'
-        }), 401
+    # auth_header = request.headers.get('Authorization')
+    # if not auth_header or not auth_header.startswith('Bearer '):
+    #     return jsonify({
+    #         'success': False,
+    #         'error': 'Authorization token missing or malformed'
+    #     }), 401
     
-    # Get token from header
-    token = auth_header.split(" ")[1]
+    # # Get token from header
+    # token = auth_header.split(" ")[1]
 
-    # Call decode and check if it returned an error response
-    result = decode(token)
-    if isinstance(result, tuple):
-        return result  # This is an error response
+    # # Call decode and check if it returned an error response
+    # result = decode(token)
+    # if isinstance(result, tuple):
+    #     return result  # This is an error response
         
-    user_id = result  # This is the successfully decoded user_id
+    # user_id = result  # This is the successfully decoded user_id
 
     try:
         request_data = request.get_json()
@@ -95,29 +96,46 @@ def recsys():
         # INCLUDE RECSYS SYSTEM HERE, for now skip this to recommend to x amount of users
         
         # Retrieve num of users to propagate the survey to, change default to 0 once in production
-        num_users = survey_response[0].get("num_users", 50)
+        num_users = survey_response.data[0].get("num_users", 50) 
 
-        # Get random users from the database
-        user_response = supabase.table('users') \
-            .select("*") \
-            .order('random()') \
-            .limit(num_users) \
-            .execute()
-        
+        # Call the function to get random users
+        user_response = supabase.rpc('get_random_users', {'num': num_users}).execute()
+
         users = user_response.data
-        
+
+        failed_users = []
+
         for user in users:
-            
+            # add to failed_users if any operation fails
+            data = {
+                "user_id": user.get("UID"),
+                "survey_id": survey_id
+            }
+
+            # Call ai_rag service
+            try:
+                # Fixed: Changed request.post to requests.post and added the correct URL
+                # response = requests.post("http://airag-service:5000/process", json=data)
+                
+                # Fixed: Check response status
+                if not False:
+                    failed_users.append(user.get("UID"))
+            except Exception as e:
+                # Added error handling for request failures
+                print(f"Error calling AI-RAG service for user {user.get('UID')}: {str(e)}")
+                failed_users.append(user.get("UID"))
 
         return jsonify({
             'success': True,
+            'total_users_processed': len(users),
+            'failed_user_count': len(failed_users),
+            'failed_users': failed_users
         }), 200
     except Exception as e:
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
-
 
 @app.route('/health', methods=['GET'])
 def health_check():

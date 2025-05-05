@@ -91,6 +91,37 @@ services:
       - "5005:5005"
     networks:
       - surveyNetwork
+  recsys:
+    build:
+      context: ./recsys_service
+      dockerfile: Dockerfile
+    image: AskAround/recsys:1.0
+    environment: 
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - PYTHONUNBUFFERED=1
+    # restart: always
+    ports:
+      - "5006:5006"
+    networks:
+      - surveyNetwork
+
+  addable:
+    build:
+      context: ./addable_service
+      dockerfile: Dockerfile
+    image: AskAround/addable:1.0
+    environment: 
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - PYTHONUNBUFFERED=1
+    # restart: always
+    ports:
+      - "5009:5009"
+    networks:
+      - surveyNetwork
 
   responses:
     build:
