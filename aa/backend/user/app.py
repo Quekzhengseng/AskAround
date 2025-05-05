@@ -490,6 +490,9 @@ def change_points():
         survey_id = request_data["survey_id"]
         question_id = request_data["question_id"]
 
+        # Check if survey was done before
+        
+
         # Get the survey
         survey_response = supabase.table('surveys').select("*").eq('survey_id', survey_id).execute()
 

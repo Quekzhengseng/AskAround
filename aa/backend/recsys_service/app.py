@@ -114,10 +114,11 @@ def recsys():
 
             # Call ai_rag service
             try:
-                # Fixed: Changed request.post to requests.post and added the correct URL
+                #To do Sidik, below is what is required for ai_rag_service API to receive the information. 
+                #In recsys, pass the user_id and survey_id via a POST requests call to ai_rag_service.
+                #The url is not localhost, follow docker/flask convention, it is the service_name_in_docker_compose:port-number
                 # response = requests.post("http://airag-service:5000/process", json=data)
                 
-                # Fixed: Check response status
                 if not False:
                     failed_users.append(user.get("UID"))
             except Exception as e:

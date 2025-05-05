@@ -31,6 +31,9 @@ supabase = create_client(supabase_url, supabase_key)
 def addable():
     """Endpoint to update responses and mark unanswered questions as addable"""
     try:
+        #To do Sidik, below is what is required for addable API to receive the information. 
+        #In ai_rag_service, pass the user_id and survey_id via a POST requests call to this api.
+        #The url is not localhost, follow docker/flask convention, it is the service_name_in_docker_compose:port-number
         request_data = request.get_json()
         user_id = request_data.get("user_id")
         survey_id = request_data.get("survey_id")
