@@ -36,6 +36,65 @@ openai_client = OpenAI(api_key=openai_key)
 OPEN_AI_EMBEDDING_MODEL = "text-embedding-ada-002"
 OPEN_AI_ENCODING_FORMAT = "float"
 
+@app.route('/persist_response_into_vector_store', methods=['POST'])
+def persist_response_into_vector_store():
+    data = request.get_json()
+    survey_id = data.get("survey_id")
+    user_ids = data.get("user_ids")
+
+    # query supabase surveys table for the specific survey_id
+    survey_response = supabase_client.table('surveys').select("*").eq('survey_id', survey_id).execute()
+    if not survey_response.data:
+        return jsonify({
+            'success': False,
+            'error': f"Survey with id {survey_id} not found."
+        }), 404
+
+    questions = survey_response.data[0]['questions']
+
+    response_responses = supabase_client.table('responses').select("*").eq('survey_id_fk', survey_id).in_('UID_fk', user_ids).execute()
+    
+    if not response_responses.data:
+        return jsonify({
+            'success': False,
+            'error': f"No responses found for survey with id {survey_id} and user ids {user_ids}."
+        }), 404
+
+    print(f"Found responses for survey with id {survey_id} and user ids {user_ids} : count: {len(response_responses.data)}")
+    for response in response_responses.data:
+        answers = response['answers']
+        uid = response['UID_fk']
+
+        # zip answers with the respective questions of the survey
+        zipped_answers = zip(answers, questions)
+        for answer, question in zipped_answers:
+            question_id = question['id']
+            question_text = question['question']
+            response = answer['response']
+            print(f'question_id: {question_id}, question_text: {question_text}, response: {response}')
+
+            formatted_response = f"{question_text}: {response}"
+            response = openai_client.embeddings.create(
+                input=formatted_response, model=OPEN_AI_EMBEDDING_MODEL, encoding_format=OPEN_AI_ENCODING_FORMAT
+            )
+
+            embedding = response.data[0].embedding
+
+            supabase_client.table('answer-rag').insert(
+                {
+                    "survey_id_fk": survey_id,
+                    "uid_fk": uid,
+                    "vector": embedding,
+                    "response": formatted_response,
+                    "question_id": question_id
+                }
+            ).execute()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Query Succeeed'
+    }), 200
+
 @app.route('/query_text_for_user', methods=['POST'])
 def query_text_for_user():
     data = request.get_json()
