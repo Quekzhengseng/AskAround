@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app.py .
+COPY rag/ rag/
 
 # Create .env file for local development (will be overridden by environment variables)
 RUN echo "SUPABASE_URL=${SUPABASE_URL}" > .env

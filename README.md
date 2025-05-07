@@ -1,7 +1,7 @@
 # AskAround
 AskAround: An application for survey provision
 
-# Start-up
+# Start-up (Backend)
 1. Ensure .env file is present in aa/backend folder
 2. Start Docker Desktop
 3. Run docker

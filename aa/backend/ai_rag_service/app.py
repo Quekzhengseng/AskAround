@@ -5,6 +5,9 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from rag.rag import Rag
+from rag.bot import Bot
+
 # Load environment variables
 load_dotenv()
 
@@ -36,6 +39,9 @@ openai_client = OpenAI(api_key=openai_key)
 OPEN_AI_EMBEDDING_MODEL = "text-embedding-ada-002"
 OPEN_AI_ENCODING_FORMAT = "float"
 
+rag = Rag(supabase_client, openai_client, OPEN_AI_EMBEDDING_MODEL, OPEN_AI_ENCODING_FORMAT)
+bot = Bot(openai_client, rag)
+
 @app.route('/persist_response_into_vector_store', methods=['POST'])
 def persist_response_into_vector_store():
     data = request.get_json()
@@ -59,36 +65,12 @@ def persist_response_into_vector_store():
             'success': False,
             'error': f"No responses found for survey with id {survey_id} and user ids {user_ids}."
         }), 404
-
+    
     print(f"Found responses for survey with id {survey_id} and user ids {user_ids} : count: {len(response_responses.data)}")
-    for response in response_responses.data:
-        answers = response['answers']
-        uid = response['UID_fk']
+    
+    survey_responses = response_responses.data
 
-        # zip answers with the respective questions of the survey
-        zipped_answers = zip(answers, questions)
-        for answer, question in zipped_answers:
-            question_id = question['id']
-            question_text = question['question']
-            response = answer['response']
-            print(f'question_id: {question_id}, question_text: {question_text}, response: {response}')
-
-            formatted_response = f"{question_text}: {response}"
-            response = openai_client.embeddings.create(
-                input=formatted_response, model=OPEN_AI_EMBEDDING_MODEL, encoding_format=OPEN_AI_ENCODING_FORMAT
-            )
-
-            embedding = response.data[0].embedding
-
-            supabase_client.table('answer-rag').insert(
-                {
-                    "survey_id_fk": survey_id,
-                    "uid_fk": uid,
-                    "vector": embedding,
-                    "response": formatted_response,
-                    "question_id": question_id
-                }
-            ).execute()
+    rag.persist_response_into_vector_store(survey_responses, questions)
     
     return jsonify({
         'success': True,
@@ -101,44 +83,41 @@ def query_text_for_user():
     query_text = data.get("query_text")
     user_id = data.get("user_id", None)
 
-    response = openai_client.embeddings.create(
-        input=query_text,
-        model=OPEN_AI_EMBEDDING_MODEL,
-        encoding_format=OPEN_AI_ENCODING_FORMAT
-    )
-    embedding = response.data[0].embedding
-    
     try:
-        response = supabase_client.rpc('cosine_similarity_search_with_user',
-            {
-                'query_embedding': embedding,
-                "user_id": user_id,
-                'match_count': 10
-        }
-        ).execute()
-        
-        if response.data:
-            most_similar_documents = response.data
-            print("Most similar documents:")
-            for doc in most_similar_documents:
-                print(f"Response: {doc['response']}, Similarity (Distance): {doc['similarity']}")
+        most_similar_documents = rag.query_vector_store(query_text, user_id)
+        if most_similar_documents:
             return jsonify({
                 'success': True,
-                'result': response.data
+                'result': most_similar_documents
             }), 200
         else:
-            print("No similar documents found - vector store may be empty")
             return jsonify({
-                'success': True,
+                'success': True,    
                 'result': "No similar documents found - vector store may be empty"
             }), 200
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
-    
+
+@app.route('/attempt_to_answer_question', methods=['POST'])
+def attempt_to_answer_question():
+    data = request.get_json()
+    question = data.get("question")
+    user_id = data.get("user_id")
+
+    try:
+        bot_response = bot.attempt_to_answer_question(question, user_id)
+        return jsonify({
+            'success': True,
+            'result': bot_response
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/health', methods=['GET'])
 def health():
