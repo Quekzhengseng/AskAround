@@ -5,7 +5,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { SurveyAPI, UserAPI } from "./utils/SurveyAPI";
 import { UseAuth } from "./utils/hooks/UseAuth";
-import ToggleSwitch from "./components/common/ToggleSwitch";
+import Header from "./components/common/header";
+import Footer from "./components/common/footer";
 import { User, Award, ClipboardList } from "lucide-react";
 
 export default function Home() {
@@ -78,68 +79,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-indigo-50">
       {/* --- Header --- */}
-      <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-sm border-b border-gray-200/80">
-        <div className="container mx-auto px-4 h-16 flex justify-between items-center">
-          {/* Left Section */}
-          <div className="flex-1 flex justify-start">
-            <Link
-              href="/"
-              className="font-semibold text-lg text-gray-800 flex items-center"
-            >
-              <span className="text-indigo-600 mr-2 text-xl">●</span>
-              AskAround
-            </Link>
-          </div>
-          {/* Right Section */}
-          <div className="flex-1 flex justify-end items-center gap-2">
-            <ToggleSwitch
-              leftOption="Do Surveys"
-              rightOption="Create Survey"
-              leftPath="/"
-              rightPath="/curator"
-            />
-            {/* Profile Link */}
-            <Link
-              href="/profile"
-              className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-indigo-600 transition-colors"
-              aria-label="Profile"
-            >
-              <svg
-                className="w-5 h-5"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-            </Link>
-            <Link
-              href="/voucher"
-              className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-indigo-600 transition-colors"
-              aria-label="Go to voucher"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-5 h-5"
-              >
-                <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z" />
-                <path d="M12 4v2m0 2v2m0 2v2m0 2v2m0 2v2" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <main className="container mx-auto px-4 py-12">
         {/* User Info Card */}
@@ -459,24 +399,8 @@ export default function Home() {
         )}
       </main>
 
-      <footer className="mt-16 bg-gray-50 border-t border-gray-100 py-12">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-6 md:mb-0">
-              <p className="flex items-center text-gray-800 font-medium">
-                <span className="text-indigo-600 mr-2 text-xl">●</span>
-                AskAround
-              </p>
-              <p className="text-gray-500 text-sm mt-1">
-                Share your thoughts, shape our future
-              </p>
-            </div>
-            <div className="text-gray-500 text-sm">
-              © {new Date().getFullYear()} AskAround Survey Platform
-            </div>
-          </div>
-        </div>
-      </footer>
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
