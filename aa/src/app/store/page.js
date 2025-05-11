@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Footer from "../components/common/footer";
 import Header from "../components/common/header";
+import { UseAuth } from "./../utils/hooks/UseAuth";
 
 const CreditStoreDisplay = () => {
   const [quantity, setQuantity] = useState(1);
