@@ -4,6 +4,8 @@ import Link from "next/link";
 
 export default function Payment() {
   const [status, setStatus] = useState("");
+  const [orderDetails, setOrderDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Check URL parameters to determine payment status
@@ -11,10 +13,44 @@ export default function Payment() {
 
     if (query.get("success")) {
       setStatus("success");
+
+      // Get session_id if available
+      const sessionId = query.get("session_id");
+
+      if (sessionId) {
+        // Fetch session details from your backend
+        fetchSessionDetails(sessionId);
+      } else {
+        setLoading(false);
+      }
     } else if (query.get("canceled")) {
       setStatus("canceled");
+      setLoading(false);
+    } else {
+      setLoading(false);
     }
   }, []);
+
+  // Function to fetch session details
+  const fetchSessionDetails = async (sessionId) => {
+    try {
+      // You'd need to create this endpoint on your backend
+      const response = await fetch(
+        `http://localhost:5010/checkout-session?session_id=${sessionId}`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setOrderDetails(data);
+      } else {
+        console.error("Error fetching session details");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Success message component
   const SuccessMessage = () => (
@@ -39,20 +75,51 @@ export default function Payment() {
         Payment Successful!
       </h2>
       <p className="text-gray-600 mb-6">
-        Your order has been processed and you will receive a confirmation email
-        shortly.
+        Your order has been processed and credits have been added to your
+        account.
       </p>
 
       <div className="bg-gray-50 p-4 rounded-md text-left mb-6">
         <h3 className="font-medium text-gray-700 mb-3">Order Summary</h3>
-        <div className="flex justify-between mb-2">
-          <span className="text-gray-500">Product:</span>
-          <span className="font-medium">Stubborn Attachments</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-500">Amount:</span>
-          <span className="font-medium">$20.00</span>
-        </div>
+
+        {orderDetails ? (
+          <>
+            <div className="flex justify-between mb-2">
+              <span className="text-gray-500">Product:</span>
+              <span className="font-medium">Survey Credits</span>
+            </div>
+            <div className="flex justify-between mb-2">
+              <span className="text-gray-500">Quantity:</span>
+              <span className="font-medium">
+                {orderDetails.quantity}{" "}
+                {parseInt(orderDetails.quantity) === 1 ? "package" : "packages"}
+              </span>
+            </div>
+            <div className="flex justify-between mb-2">
+              <span className="text-gray-500">Credits Added:</span>
+              <span className="font-medium">
+                {parseInt(orderDetails.quantity) * 10} credits
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Amount:</span>
+              <span className="font-medium">
+                ${(orderDetails.amount_total / 100).toFixed(2)}
+              </span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex justify-between mb-2">
+              <span className="text-gray-500">Product:</span>
+              <span className="font-medium">Survey Credits</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Amount:</span>
+              <span className="font-medium">Purchase Confirmed</span>
+            </div>
+          </>
+        )}
       </div>
 
       <Link
@@ -120,6 +187,10 @@ export default function Payment() {
 
   // Render appropriate component based on status
   const renderContent = () => {
+    if (loading) {
+      return <DefaultState />;
+    }
+
     switch (status) {
       case "success":
         return <SuccessMessage />;

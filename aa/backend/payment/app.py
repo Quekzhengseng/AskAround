@@ -103,8 +103,8 @@ def create_checkout_session():
                 },
             ],
             mode='payment',
-            success_url=DOMAIN_NAME + '/payment?success=true',
-            cancel_url=DOMAIN_NAME + '/payment?canceled=true',
+            success_url=f"{DOMAIN_NAME}/payment?success=true&session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{DOMAIN_NAME}/payment?canceled=true",
             metadata={
                 'user_id': user_id,
                 'quantity': str(quantity),
@@ -154,9 +154,9 @@ def stripe_webhook():
             credits_to_add = quantity * credits_per_quantity
             
             # Log transaction details
-            logger.info(f"Processing completed checkout: {session['id']}")
-            logger.info(f"User ID: {user_id}")
-            logger.info(f"Adding {credits_to_add} credits")
+            # logger.info(f"Processing completed checkout: {session['id']}")
+            # logger.info(f"User ID: {user_id}")
+            # logger.info(f"Adding {credits_to_add} credits")
             
             # Only proceed if we have a user_id
             if user_id:
@@ -169,15 +169,15 @@ def stripe_webhook():
                         current_credits = user_response.data[0].get('credit', 0) or 0
                         new_credits = current_credits + credits_to_add
                         
-                        logger.info(f"Current credits for user {user_id}: {current_credits}")
+                        # logger.info(f"Current credits for user {user_id}: {current_credits}")
                         
                         # Update user's credits in Supabase
                         update_response = supabase.table('users').update({
                             'credit': new_credits
                         }).eq('UID', user_id).execute()
                         
-                        logger.info(f"Updated credit for user {user_id}: {current_credits} -> {new_credits}")
-                        logger.info(f"Supabase update response: {update_response}")
+                        # logger.info(f"Updated credit for user {user_id}: {current_credits} -> {new_credits}")
+                        # logger.info(f"Supabase update response: {update_response}")
                         
                         # Add transaction logging if needed
                         # transaction_data = {
@@ -217,6 +217,46 @@ def stripe_webhook():
         logger.exception("Full exception details:")
         return jsonify({'error': str(e)}), 400
 
+@app.route('/checkout-session', methods=['GET'])
+def get_checkout_session():
+    try:
+        # Get session ID from query parameters
+        session_id = request.args.get('session_id')
+        
+        if not session_id:
+            logger.warning("No session_id provided to /checkout-session")
+            return jsonify({"error": "No session_id provided"}), 400
+        
+        logger.info(f"Fetching checkout session: {session_id}")
+        
+        # Retrieve session from Stripe
+        checkout_session = stripe.checkout.Session.retrieve(
+            session_id,
+            expand=['line_items', 'payment_intent']
+        )
+        
+        # Extract the needed details
+        session_data = {
+            'id': checkout_session.id,
+            'amount_total': checkout_session.amount_total,
+            'currency': checkout_session.currency,
+            'payment_status': checkout_session.payment_status,
+            'customer_email': checkout_session.customer_details.email if hasattr(checkout_session, 'customer_details') else None,
+            'metadata': checkout_session.metadata,
+            'quantity': checkout_session.metadata.get('quantity', '1')
+        }
+        
+        logger.info(f"Session details retrieved successfully: {session_data}")
+        
+        return jsonify(session_data)
+        
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe error in /checkout-session: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error in /checkout-session: {str(e)}")
+        logger.exception("Full exception details:")
+        return jsonify({"error": "Failed to retrieve session"}), 500
 
 @app.route('/health', methods=['HEAD'])
 def health_check():
