@@ -6,6 +6,7 @@ const USER_SERVICE_URL = "http://localhost:5001";
 const VOUCHER_SERVICE_URL = "http://localhost:5002";
 const AUTHENTICATION_SERVICE_URL = "http://localhost:5005";
 const RESPONSES_SERVICE_URL = "http://localhost:5101";
+const PAYMENT_SERVICE_URL = "http://localhost:5010";
 
 /**
  * Helper function to handle API requests with dynamic base URL
@@ -125,6 +126,23 @@ export const UserAPI = {
       "/deleteAccount",
       "DELETE",
       null,
+      token
+    );
+    return response;
+  },
+
+  /**
+   * Handles the checkout of credits
+   */
+  handleCheckout: async (token, quantity) => {
+    // Updated to send token in Authorization header
+    const response = await apiRequest(
+      PAYMENT_SERVICE_URL,
+      "/create-checkout-session",
+      "POST",
+      {
+        quantity: quantity,
+      },
       token
     );
     return response;

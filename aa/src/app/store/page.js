@@ -5,9 +5,11 @@ import Link from "next/link";
 import Footer from "../components/common/footer";
 import Header from "../components/common/header";
 import { UseAuth } from "./../utils/hooks/UseAuth";
+import { UserAPI } from "./../utils/SurveyAPI";
 
 const CreditStoreDisplay = () => {
   const [quantity, setQuantity] = useState(1);
+  const [loading, setLoading] = useState(true);
   const { userData } = UseAuth();
   const creditPrice = 10.0;
   const totalPrice = creditPrice * quantity;
@@ -19,6 +21,29 @@ const CreditStoreDisplay = () => {
     "Real-time analytics and reporting",
     "Export data in multiple formats",
   ];
+
+  const handleCheckout = async () => {
+    try {
+      setLoading(true);
+      // Get token from wherever you store it (localStorage, context, etc.)
+      const token = localStorage.getItem("token");
+
+      const response = await UserAPI.handleCheckout(token, quantity);
+
+      console.log(response);
+
+      // Redirect to Stripe checkout
+      if (response.url) {
+        window.location.href = response.url;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-indigo-50 flex flex-col">
@@ -199,32 +224,26 @@ const CreditStoreDisplay = () => {
                     </div>
                   </div>
 
-                  <form
-                    action="http://localhost:5010/create-checkout-session"
-                    method="POST"
+                  <button
+                    onClick={handleCheckout}
+                    className="w-full bg-indigo-600 text-white font-medium py-3 px-4 rounded-md hover:bg-indigo-700 transition duration-200 flex items-center justify-center"
                   >
-                    <input type="hidden" name="quantity" value={quantity} />
-                    <button
-                      type="submit"
-                      className="w-full bg-indigo-600 text-white font-medium py-3 px-4 rounded-md hover:bg-indigo-700 transition duration-200 flex items-center justify-center"
+                    <svg
+                      className="h-5 w-5 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
                     >
-                      <svg
-                        className="h-5 w-5 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                        ></path>
-                      </svg>
-                      Secure Checkout
-                    </button>
-                  </form>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      ></path>
+                    </svg>
+                    Secure Checkout
+                  </button>
 
                   <div className="flex items-center justify-center mt-4 text-sm text-gray-500">
                     <svg

@@ -7,6 +7,20 @@ from dotenv import load_dotenv
 import stripe
 import jwt
 import json
+import logging
+import sys
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+# Create a logger for your application
+logger = logging.getLogger('stripe-webhook-service')
 
 
 # Load environment variables
@@ -67,14 +81,20 @@ def decode(token):
 @app.route('/create-checkout-session', methods=['POST'])
 def create_checkout_session():
     try:
-        # Get quantity from form data (default to 1 if not provided)
-        quantity = int(request.form.get('quantity', 1))
-
-        # Get user ID from JWT token
-        auth_header = request.headers.get('Authorization')
-        token = auth_header.split(" ")[1]
-        user_id = decode(token)  # Your JWT decoding function
-
+        # Check if the request is JSON or form data
+        if request.is_json:
+            data = request.get_json()
+            quantity = int(data.get('quantity', 1))
+            
+            # Get user id from authorization header
+            auth_header = request.headers.get('Authorization', '')
+            if auth_header.startswith('Bearer '):
+                token = auth_header.split(' ')[1]
+                user_id = decode(token)  # Your JWT decode function
+            else:
+                return jsonify({"error": "Invalid or missing authorization"}), 401
+        
+        # Create Stripe checkout session
         checkout_session = stripe.checkout.Session.create(
             line_items=[
                 {
@@ -91,15 +111,23 @@ def create_checkout_session():
                 'credits_per_quantity': '10'
             }
         )
+        
+        if request.is_json:
+            return jsonify({
+                "url": checkout_session.url,
+                "sessionId": checkout_session.id
+            })
+        
     except Exception as e:
-        return str(e)
-
-    return redirect(checkout_session.url, code=303)
+        # Return error as JSON for API requests
+        return jsonify({"error": str(e)}), 400
 
 @app.route('/webhook', methods=['POST'])
 def stripe_webhook():
     payload = request.data
     sig_header = request.headers.get('Stripe-Signature')
+    
+    logger.info("Received webhook request")
     
     try:
         # Verify the webhook signature
@@ -107,11 +135,10 @@ def stripe_webhook():
             event = stripe.Webhook.construct_event(
                 payload, sig_header, webhook_secret
             )
-            print(f"Received event: {event['type']}")
+            logger.info(f"Received event: {event['type']}")
         else:
-            # For testing/development without webhook secret
-            # (NOT recommended for production)
-            return jsonify({'error': 'Invalid signature'}), 400
+            logger.warning("No webhook secret configured - skipping signature verification")
+            return jsonify({'error': 'Webhook secret not configured'}), 400
         
         # Handle the checkout.session.completed event
         if event['type'] == 'checkout.session.completed':
@@ -127,9 +154,9 @@ def stripe_webhook():
             credits_to_add = quantity * credits_per_quantity
             
             # Log transaction details
-            print(f"Processing completed checkout: {session['id']}")
-            print(f"User ID: {user_id}")
-            print(f"Adding {credits_to_add} credits")
+            logger.info(f"Processing completed checkout: {session['id']}")
+            logger.info(f"User ID: {user_id}")
+            logger.info(f"Adding {credits_to_add} credits")
             
             # Only proceed if we have a user_id
             if user_id:
@@ -142,39 +169,52 @@ def stripe_webhook():
                         current_credits = user_response.data[0].get('credit', 0) or 0
                         new_credits = current_credits + credits_to_add
                         
+                        logger.info(f"Current credits for user {user_id}: {current_credits}")
+                        
                         # Update user's credits in Supabase
                         update_response = supabase.table('users').update({
                             'credit': new_credits
                         }).eq('id', user_id).execute()
                         
-                        print(f"Updated credit for user {user_id}: {current_credits} -> {new_credits}")
+                        logger.info(f"Updated credit for user {user_id}: {current_credits} -> {new_credits}")
+                        logger.info(f"Supabase update response: {update_response}")
                         
-                        # # Log the transaction in a separate table (optional)
+                        # Add transaction logging if needed
                         # transaction_data = {
                         #     'user_id': user_id,
                         #     'stripe_session_id': session['id'],
-                        #     'amount': session.get('amount_total', 0) / 100,  # Convert cents to dollars
+                        #     'amount': session.get('amount_total', 0) / 100,
                         #     'credits_added': credits_to_add,
                         #     'created_at': datetime.now(timezone.utc).isoformat()
                         # }
-                        
                         # supabase.table('credit_transactions').insert(transaction_data).execute()
+                        # logger.info(f"Transaction logged: {session['id']}")
                     else:
-                        print(f"User {user_id} not found in Supabase")
+                        logger.warning(f"User {user_id} not found in Supabase")
+                        logger.debug(f"Supabase response: {user_response}")
                 except Exception as e:
-                    print(f"Error updating Supabase: {str(e)}")
+                    logger.error(f"Error updating Supabase: {str(e)}")
+                    logger.exception("Full exception details:")
             else:
-                print("No user_id provided in metadata, cannot update credits")
+                logger.warning("No user_id provided in metadata, cannot update credits")
+        elif event['type'] == 'payment_intent.succeeded':
+            logger.info(f"Payment intent succeeded: {event['data']['object']['id']}")
+        elif event['type'] == 'payment_intent.payment_failed':
+            logger.warning(f"Payment intent failed: {event['data']['object']['id']}")
+            logger.warning(f"Failure reason: {event['data']['object'].get('last_payment_error', {}).get('message', 'Unknown')}")
+        else:
+            logger.info(f"Received unhandled event type: {event['type']}")
         
         return jsonify({'status': 'success'})
     
     except stripe.error.SignatureVerificationError as e:
         # Invalid signature
-        print(f"⚠️ Webhook signature verification failed: {str(e)}")
+        logger.error(f"Webhook signature verification failed: {str(e)}")
         return jsonify({'error': 'Invalid signature'}), 400
     
     except Exception as e:
-        print(f"⚠️ Webhook error: {str(e)}")
+        logger.error(f"Webhook error: {str(e)}")
+        logger.exception("Full exception details:")
         return jsonify({'error': str(e)}), 400
 
 
