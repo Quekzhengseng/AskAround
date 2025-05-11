@@ -135,19 +135,19 @@ def stripe_webhook():
             if user_id:
                 try:
                     # First, get current credits for the user
-                    user_response = supabase.table('users').select('credits').eq('id', user_id).execute()
+                    user_response = supabase.table('users').select('credit').eq('id', user_id).execute()
                     
                     if user_response.data and len(user_response.data) > 0:
                         # User exists, get current credits (default to 0 if null)
-                        current_credits = user_response.data[0].get('credits', 0) or 0
+                        current_credits = user_response.data[0].get('credit', 0) or 0
                         new_credits = current_credits + credits_to_add
                         
                         # Update user's credits in Supabase
                         update_response = supabase.table('users').update({
-                            'credits': new_credits
+                            'credit': new_credits
                         }).eq('id', user_id).execute()
                         
-                        print(f"Updated credits for user {user_id}: {current_credits} -> {new_credits}")
+                        print(f"Updated credit for user {user_id}: {current_credits} -> {new_credits}")
                         
                         # # Log the transaction in a separate table (optional)
                         # transaction_data = {
