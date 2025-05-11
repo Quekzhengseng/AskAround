@@ -7,7 +7,7 @@ import { SurveyAPI, UserAPI } from "./utils/SurveyAPI";
 import { UseAuth } from "./utils/hooks/UseAuth";
 import Header from "./components/common/header";
 import Footer from "./components/common/footer";
-import { User, Award, ClipboardList } from "lucide-react";
+import { User, Award, ClipboardList, Coins } from "lucide-react";
 
 export default function Home() {
   // State for surveys and loading status
@@ -98,7 +98,7 @@ export default function Home() {
               {userData?.username || ""}
             </h2>
 
-            <div className="grid grid-cols-2 gap-4 w-full">
+            <div className="grid grid-cols-3 gap-4 w-full">
               <div className="flex items-center p-3 bg-gray-50 rounded-lg">
                 <Award size={24} className="text-yellow-500 mr-3" />
                 <div>
@@ -119,6 +119,20 @@ export default function Home() {
                   <p className="text-sm text-gray-500">Pending Surveys</p>
                   <p className="text-lg font-bold">
                     {userData?.to_be_answered_surveys?.length ?? 0}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                <Coins size={24} className="text-green-500 mr-3" />
+                <div>
+                  <p className="text-sm text-gray-500">Available Credits</p>
+                  <p className="text-lg font-bold">
+                    {userData
+                      ? userData.credit !== undefined
+                        ? userData.credit
+                        : 0
+                      : 0}
                   </p>
                 </div>
               </div>
