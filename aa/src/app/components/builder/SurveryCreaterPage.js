@@ -12,6 +12,8 @@ import Link from "next/link";
 import TextInput from "../common/TextInput"; // Reusable input
 import TextArea from "../common/TextArea"; // Reusable textarea
 import ToggleSwitch from "./../common/ToggleSwitch";
+import PublishSurveyModal from "./PublishSurveyModal";
+import { UseAuth } from "./../../utils/hooks/UseAuth";
 
 const SurveyCreatorPage = () => {
   // --- State ---
@@ -25,6 +27,17 @@ const SurveyCreatorPage = () => {
 
   // Ref to access SurveyBuilder methods
   const surveyBuilderRef = useRef();
+
+  // Fetch User Data
+  const { userData } = UseAuth();
+
+  // State for modal
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+
+  // Opens the modal
+  const handleModal = () => {
+    setIsPublishModalOpen(true);
+  };
 
   // --- Data Fetching ---
   const fetchAllSurveys = async () => {
@@ -134,6 +147,7 @@ const SurveyCreatorPage = () => {
       alert(successMessage);
       setIsCreating(false); // Return to list view
       setEditingSurvey(null); // Clear editing state (also clears title/desc via useEffect)
+      setIsPublishModalOpen(false);
     } catch (err) {
       console.error(
         `Error ${isPublishing ? "publishing" : "saving"} survey:`,
@@ -257,7 +271,7 @@ const SurveyCreatorPage = () => {
                   Save Draft
                 </button>
                 <button
-                  onClick={handlePublishSurvey}
+                  onClick={handleModal}
                   className="bg-[#7c3aed] hover:bg-[#5b21b6] text-white text-sm font-medium py-1.5 px-4 rounded-md transition-colors shadow-sm hover:shadow" // purple
                 >
                   {/* Check original editingSurvey prop for initial state */}
@@ -481,6 +495,15 @@ const SurveyCreatorPage = () => {
         {/* text-subtle */}© {new Date().getFullYear()} AskAround Survey
         Platform
       </footer>
+      <PublishSurveyModal
+        isOpen={isPublishModalOpen}
+        onClose={() => setIsPublishModalOpen(false)}
+        userData={userData}
+        onPublishWithPush={handlePublishSurvey}
+        onPublishWithoutPush={handlePublishSurvey}
+        surveyTitle={editingSurvey?.title || "Untitled Survey"}
+        isUpdate={editingSurvey?.is_published}
+      />
     </div>
   );
 };
