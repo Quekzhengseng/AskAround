@@ -687,6 +687,60 @@ def delete_user_data():
             "error": str(e),
             "details": results.get("details", {})
         }
+    
+@app.route('/useCredit', methods=['POST'])
+def useCredit():
+    """Endpoint to subtract credit from a user"""
+    # 🔐 Get token from Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({
+            'success': False,
+            'error': 'Authorization token missing or malformed'
+        }), 401
+    
+    # Get token from header
+    token = auth_header.split(" ")[1]
+
+    # Call decode and check if it returned an error response
+    result = decode(token)
+    if isinstance(result, tuple):
+        return result  # This is an error response
+        
+    user_id = result  # This is the successfully decoded user_id
+
+    try:
+        request_data = request.get_json()
+        quantity = request_data.get("quantity")
+
+        # Fetch user data for both answered_surveys and to_be_answered_surveys
+        user_response = supabase.table('users').select("credit").eq('UID', user_id).execute()
+        
+        if not user_response.data:
+            return jsonify({
+                'success': False,
+                'error': 'User not found'
+            }), 404
+        
+        # Get user data
+        user_data = user_response.data[0]
+        
+        # Get current user credit
+        credit = user_data.get('credit') - quantity 
+        
+        # Update user with new credit
+        supabase.table('users').update({
+            'credit': credit
+        }).eq('UID', user_id).execute()
+
+        return jsonify({
+            'success': True,
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/health', methods=['GET'])
 def health_check():
