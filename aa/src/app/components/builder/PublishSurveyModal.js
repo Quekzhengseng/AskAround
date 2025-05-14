@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { Coins, AlertCircle, CheckCircle2, X } from "lucide-react";
+import { UserAPI } from "./../../utils/SurveyAPI";
 
 const PublishSurveyModal = ({
   isOpen,
@@ -29,10 +30,12 @@ const PublishSurveyModal = ({
   };
 
   // Handle publish with push
+  //TOFIX: this api call is not suppose to be here, shift to one level out into survey creater page
   const handlePublishWithPush = () => {
     if (userData.credit < selectedRespondents) {
       seterror("Not Enough Credits");
     } else {
+      UserAPI.creditUse(localStorage.getItem("token"), selectedRespondents);
       onPublishWithPush(selectedRespondents);
       onClose();
     }

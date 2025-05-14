@@ -132,13 +132,30 @@ export const UserAPI = {
   },
 
   /**
-   * Handles the checkout of credits
+   * Handles the checkout at store
    */
   handleCheckout: async (token, quantity) => {
     // Updated to send token in Authorization header
     const response = await apiRequest(
       PAYMENT_SERVICE_URL,
       "/create-checkout-session",
+      "POST",
+      {
+        quantity: quantity,
+      },
+      token
+    );
+    return response;
+  },
+
+  /**
+   * Handles the use of credits upon survey creation
+   */
+  creditUse: async (token, quantity) => {
+    // Updated to send token in Authorization header
+    const response = await apiRequest(
+      USER_SERVICE_URL,
+      "/useCredit",
       "POST",
       {
         quantity: quantity,
