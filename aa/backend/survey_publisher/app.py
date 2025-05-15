@@ -52,6 +52,7 @@ def create_survey():
             'title': data['title'],
             'description': data.get('description', ''), # Use .get for optional description
             'questions': data['questions'], 
+            'conditional_logic': data.get('conditional_logic', {})
             # --- REMOVED ALL OTHER FIELDS ---
             # 'status': 'draft',
             # 'is_published': False,
@@ -101,7 +102,7 @@ def update_survey(survey_id):
 
         # Prepare update data - ONLY these fields
         update_data = {}
-        updatable_fields = ['title', 'description', 'questions'] # Only these 3
+        updatable_fields = ['title', 'description', 'questions', 'conditional_logic']
         for field in updatable_fields:
             if field in data:
                 update_data[field] = data[field]

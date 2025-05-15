@@ -2,15 +2,19 @@
 import React from "react";
 import TextInput from "../../common/TextInput";
 import NumberInput from "../../common/NumberInput";
-import ToggleSwitch from "../../common/ToggleSwitch"; // Uses arbitrary values internally now
+import ToggleSwitch from "../../common/ToggleSwitch"; 
+import BooleanToggle from "../../common/BooleanToggle";
 
-// Helper remains the same
-const useValidationChange = (question, onChange) => (key, value) => {
-  /* ... */
-};
-
-const BaseEditor = ({ question, onChange, children }) => {
-  const handleValidationChange = useValidationChange(question, onChange);
+const BaseEditor = ({ question, onChange, children , editorProps}) => {
+  const handleValidationChange = (key, value) => {
+    onChange({
+      ...question,
+      validation: {
+        ...question.validation,
+        [key]: value === "" || value === undefined ? undefined : value,
+      },
+    });
+  };
   const activeColor = "#7c3aed"; // Define purple again if needed for focus rings etc.
 
   return (
@@ -27,7 +31,13 @@ const BaseEditor = ({ question, onChange, children }) => {
 
       {/* Render specific editor fields */}
       {children}
-
+      {/* {React.Children.map(children, child => {
+         if (React.isValidElement(child)) {
+             // Clone the child element and add editorProps
+             return React.cloneElement(child, { ...editorProps });
+         }
+         return child;
+       })} */}
       {/* --- Settings Section --- */}
       <div className="pt-4 mt-4 border-t border-gray-200/80 space-y-4">
         <h3 className="text-xs font-semibold uppercase text-[#9ca3af] mb-3">
@@ -35,7 +45,7 @@ const BaseEditor = ({ question, onChange, children }) => {
         </h3>{" "}
         {/* text-subtle */}
         {/* Required Question Toggle */}
-        <ToggleSwitch
+        <BooleanToggle 
           id={`required-${question.id}`}
           label="Required Answer"
           checked={question.validation?.required || false}
@@ -85,6 +95,7 @@ const BaseEditor = ({ question, onChange, children }) => {
             Allow users to save question
           </label>
         </div>
+        {editorProps?.renderConditionalLogicUI && editorProps.renderConditionalLogicUI()}
         <div data-role="advanced-settings-placeholder"></div>
       </div>
     </div>
