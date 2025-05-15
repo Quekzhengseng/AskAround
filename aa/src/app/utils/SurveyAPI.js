@@ -7,6 +7,7 @@ const VOUCHER_SERVICE_URL = "http://localhost:5002";
 const AUTHENTICATION_SERVICE_URL = "http://localhost:5005";
 const RESPONSES_SERVICE_URL = "http://localhost:5101";
 const PAYMENT_SERVICE_URL = "http://localhost:5010";
+const RECSYS_SERVICE_URL = "http://localhost:5006";
 
 /**
  * Helper function to handle API requests with dynamic base URL
@@ -72,6 +73,24 @@ export const SurveyAPI = {
       token
     );
     return response.data;
+  },
+
+  /**
+   * Starts the recsys process
+   * TODO: Shift this to surveypublisher
+   */
+  recSys: async (token, surveyId) => {
+    // Updated to send token in Authorization header
+    const response = await apiRequest(
+      RECSYS_SERVICE_URL,
+      "/recsys",
+      "POST",
+      {
+        survey_id: surveyId,
+      },
+      token
+    );
+    return response;
   },
 
   /**
