@@ -151,23 +151,6 @@ export const UserAPI = {
   },
 
   /**
-   * Handles the checkout at store
-   */
-  handleCheckout: async (token, quantity) => {
-    // Updated to send token in Authorization header
-    const response = await apiRequest(
-      PAYMENT_SERVICE_URL,
-      "/create-checkout-session",
-      "POST",
-      {
-        quantity: quantity,
-      },
-      token
-    );
-    return response;
-  },
-
-  /**
    * Handles the use of credits upon survey creation
    */
   creditUse: async (token, quantity) => {
@@ -409,8 +392,42 @@ export const VoucherAPI = {
   },
 };
 
+/**
+ * Payment-related API functions
+ */
+export const PaymentAPI = {
+  /**
+   *
+   */
+  getSession: async (sessionId) => {
+    const response = await apiRequest(
+      PAYMENT_SERVICE_URL,
+      `/checkout-session?session_id=${sessionId}`
+    );
+    return response.data;
+  },
+
+  /**
+   * Handles the checkout at store
+   */
+  handleCheckout: async (token, quantity) => {
+    // Updated to send token in Authorization header
+    const response = await apiRequest(
+      PAYMENT_SERVICE_URL,
+      "/create-checkout-session",
+      "POST",
+      {
+        quantity: quantity,
+      },
+      token
+    );
+    return response;
+  },
+};
+
 export default {
   SurveyAPI,
   UserAPI,
   VoucherAPI,
+  PaymentAPI,
 };

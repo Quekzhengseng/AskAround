@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 
+import { PaymentAPI } from "./../utils/SurveyAPI";
+
 export default function Payment() {
   const [status, setStatus] = useState("");
   const [orderDetails, setOrderDetails] = useState(null);
@@ -35,9 +37,7 @@ export default function Payment() {
   const fetchSessionDetails = async (sessionId) => {
     try {
       // You'd need to create this endpoint on your backend
-      const response = await fetch(
-        `http://localhost:5010/checkout-session?session_id=${sessionId}`
-      );
+      const response = await PaymentAPI.getSession(sessionId);
 
       if (response.ok) {
         const data = await response.json();
