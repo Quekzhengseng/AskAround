@@ -404,7 +404,7 @@ export const PaymentAPI = {
       PAYMENT_SERVICE_URL,
       `/checkout-session?session_id=${sessionId}`
     );
-    return response.data;
+    return response;
   },
 
   /**

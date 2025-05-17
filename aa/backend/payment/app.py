@@ -105,7 +105,7 @@ def create_checkout_session():
             mode='payment',
             allow_promotion_codes=True,
             success_url=f"{DOMAIN_NAME}/payment?success=true&session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{DOMAIN_NAME}/payment?canceled=true",
+            cancel_url=f"{DOMAIN_NAME}/store",
             metadata={
                 'user_id': user_id,
                 'quantity': str(quantity),

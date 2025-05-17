@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 
 // Components Imports
 import Footer from "../components/common/footer";
@@ -36,7 +35,7 @@ const CreditStoreDisplay = () => {
       // Get token from wherever you store it (localStorage, context, etc.)
       const token = localStorage.getItem("token");
 
-      const response = await PaymentAPI.handleCheckout(token, quantity);
+      const response = await PaymentAPI.handleCheckout(token, quantity * 10);
 
       console.log(response);
 
