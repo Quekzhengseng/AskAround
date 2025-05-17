@@ -8,8 +8,10 @@ COPY requirements.txt .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy application code with new directory structure
 COPY app.py .
+COPY utils/ ./utils/
+COPY routes/ ./routes/
 
 # Create .env file for local development (will be overridden by environment variables)
 RUN echo "SUPABASE_URL=${SUPABASE_URL}" > .env

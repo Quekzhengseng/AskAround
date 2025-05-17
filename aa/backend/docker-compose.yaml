@@ -1,7 +1,7 @@
 services:
   survey-service:
     build:
-      context: ./survey
+      context: ./survey_service
       dockerfile: Dockerfile
     image: opine/survey-service:1.0
     ports:
@@ -33,7 +33,7 @@ services:
 
   user-service:
     build:
-      context: ./user
+      context: ./user_service
       dockerfile: Dockerfile
     image: opine/user-service:1.0
     ports:
@@ -49,7 +49,7 @@ services:
 
   voucher-service:
     build:
-      context: ./voucher
+      context: ./voucher_service
       dockerfile: Dockerfile
     image: opine/vocher-service:1.0
     ports:
@@ -98,7 +98,7 @@ services:
 
   authenticator:
     build:
-      context: ./auth
+      context: ./auth_service
       dockerfile: Dockerfile
     image: opine/authenticator:1.0
     environment:
@@ -145,7 +145,7 @@ services:
 
   payment:
     build:
-      context: ./payment
+      context: ./payment_service
       dockerfile: Dockerfile
     image: opine/payment:1.0
     environment:
@@ -163,7 +163,7 @@ services:
 
   responses:
     build:
-      context: ./responses
+      context: ./responses_service
       dockerfile: Dockerfile
     image: opine/responses:1.0
     ports:
