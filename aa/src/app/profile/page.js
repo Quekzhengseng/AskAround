@@ -1,24 +1,21 @@
 // app/profile/page.jsx
 "use client";
+
 import React, { useState, useEffect } from "react";
-import { UseAuth } from "./../utils/hooks/UseAuth";
-import { useRouter, useSearchParams } from "next/navigation";
+
 import Sidebar from "./../components/profile/Sidebar";
-import ProfileTab from "./../components/profile/ProfileTab";
-import QuestionsTab from "./../components/profile/QuestionsTab";
-import VouchersTab from "./../components/profile/VouchersTab";
-import PastSurveyTab from "./../components/profile/PastSurvey";
 import BackButton from "./../components/profile/BackButton";
-import LoadingSpinner from "./../components/profile/LoadingSpinner";
-import ErrorMessage from "./../components/profile/ErrorMessage";
+import ProfileTabsRenderer from "./../components/profile/ProfileTabsRenderer";
+
+import { UseAuth } from "./../utils/hooks/UseAuth";
 import { UserAPI } from "../utils/SurveyAPI";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function Profile() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  // State management
   const { userData } = UseAuth();
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -104,31 +101,20 @@ export default function Profile() {
           <BackButton />
 
           <h1 className="text-2xl font-bold text-gray-800 mb-6">
-            {activeTab === "profile" && "Profile Information"}
-            {activeTab === "questions" && "My Questions"}
-            {activeTab === "vouchers" && "My Vouchers"}
-            {activeTab === "pastSurveys" && "Past Surveys"}
+            {{
+              profile: "Profile Information",
+              questions: "My Questions",
+              vouchers: "My Vouchers",
+              pastSurveys: "Past Surveys",
+            }[activeTab] || "Profile"}
           </h1>
 
-          {loading ? (
-            <LoadingSpinner />
-          ) : error ? (
-            <ErrorMessage message={error} />
-          ) : (
-            <>
-              {activeTab === "profile" && <ProfileTab userData={userData} />}
-
-              {activeTab === "questions" && (
-                <QuestionsTab userData={userData} />
-              )}
-
-              {activeTab === "vouchers" && <VouchersTab userData={userData} />}
-
-              {activeTab === "pastSurveys" && (
-                <PastSurveyTab userData={userData} />
-              )}
-            </>
-          )}
+          <ProfileTabsRenderer
+            activeTab={activeTab}
+            userData={userData}
+            loading={loading}
+            error={error}
+          />
         </div>
       </main>
     </div>
