@@ -1,8 +1,8 @@
 services:
   survey-service:
     build:
-      context: ./survey_service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: survey_service/Dockerfile
     image: opine/survey-service:1.0
     ports:
       - "5000:5000"
@@ -15,26 +15,10 @@ services:
     networks:
       - surveyNetwork
 
-  ai-rag-service:
-    build:
-      context: ./ai_rag_service
-      dockerfile: Dockerfile
-    image: opine/ai-rag-service:1.0
-    ports:
-      - "5008:5008"
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_KEY=${SUPABASE_KEY}
-      - PYTHONUNBUFFERED=1
-    restart: unless-stopped
-    networks:
-      - surveyNetwork
-
   user-service:
     build:
-      context: ./user_service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: user_service/Dockerfile
     image: opine/user-service:1.0
     ports:
       - "5001:5001"
@@ -124,6 +108,22 @@ services:
     # restart: always
     ports:
       - "5006:5006"
+    networks:
+      - surveyNetwork
+
+  ai-rag-service:
+    build:
+      context: ./ai_rag_service
+      dockerfile: Dockerfile
+    image: opine/ai-rag-service:1.0
+    ports:
+      - "5008:5008"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
     networks:
       - surveyNetwork
 

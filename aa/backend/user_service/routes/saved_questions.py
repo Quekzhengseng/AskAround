@@ -1,16 +1,20 @@
 # routes/saved_questions.py
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timezone
-from utils.auth import get_user_id_from_request
-from utils.db import supabase, get_user_by_id
+from shared.db import Database
+from shared.auth import Auth
 
 saved_questions_bp = Blueprint('saved_questions', __name__)
+
+# Initialize database and auth utilities
+db = Database()
+auth = Auth()
 
 @saved_questions_bp.route('/user/savedquestion', methods=['GET'])
 def get_saved_questions():
     """Endpoint to retrieve the specific user's saved questions"""
     # Get user ID from token
-    result = get_user_id_from_request(request)
+    result = auth.get_user_id_from_request(request)
     if isinstance(result, tuple):
         return result  # This is an error response
     
@@ -18,32 +22,23 @@ def get_saved_questions():
 
     try:
         # Get user data with only the saved_questions field
-        user_data = get_user_by_id(user_id, "saved_questions")
+        user_data = db.get_user_by_id(user_id, "saved_questions")
         
         if not user_data:
-            return jsonify({
-                'success': False,
-                'error': 'User not found'
-            }), 404
+            return db.format_response(False, error='User not found', status_code=404)
             
         # Get the saved questions or an empty list if none
         saved_questions = user_data.get("saved_questions", [])
         
-        return jsonify({
-            'success': True,
-            'data': saved_questions
-        }), 200
+        return db.format_response(True, saved_questions)
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return db.format_response(False, error=str(e), status_code=500)
 
 @saved_questions_bp.route('/user/<num>', methods=['DELETE'])
 def delete_specific_saved_question(num):
     """Endpoint to delete a particular saved question"""
     # Get user ID from token
-    result = get_user_id_from_request(request)
+    result = auth.get_user_id_from_request(request)
     if isinstance(result, tuple):
         return result  # This is an error response
     
@@ -51,13 +46,10 @@ def delete_specific_saved_question(num):
 
     try:
         # Get user data
-        user_data = get_user_by_id(user_id, "saved_questions")
+        user_data = db.get_user_by_id(user_id, "saved_questions")
         
         if not user_data:
-            return jsonify({
-                'success': False,
-                'error': 'User not found'
-            }), 404
+            return db.format_response(False, error='User not found', status_code=404)
 
         index = int(num)
         saved_questions = user_data.get("saved_questions", [])
@@ -66,23 +58,17 @@ def delete_specific_saved_question(num):
         del saved_questions[index]
 
         # Update user data
-        supabase.table('users').update({'saved_questions': saved_questions}).eq('UID', user_id).execute()
+        db.supabase.table('users').update({'saved_questions': saved_questions}).eq('UID', user_id).execute()
         
-        return jsonify({
-            'success': True,
-            'data': saved_questions
-        }), 200
+        return db.format_response(True, saved_questions)
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return db.format_response(False, error=str(e), status_code=500)
 
 @saved_questions_bp.route('/user/add', methods=['PUT'])
 def add_to_responded():
     """Endpoint to add to specific user's questions answered databank to be saved"""
     # Get user ID from token
-    result = get_user_id_from_request(request)
+    result = auth.get_user_id_from_request(request)
     if isinstance(result, tuple):
         return result  # This is an error response
     
@@ -94,7 +80,7 @@ def add_to_responded():
         response_text = request_data["answer"]
 
         # First check if the user exists
-        user_data = get_user_by_id(user_id, "saved_questions")
+        user_data = db.get_user_by_id(user_id, "saved_questions")
         
         new_question = {
             'question': question,
@@ -104,7 +90,7 @@ def add_to_responded():
 
         if not user_data:
             # Create new user with the question
-            supabase.table('users').insert({
+            db.supabase.table('users').insert({
                 'UID': user_id,
                 'saved_questions': [new_question]
             }).execute()
@@ -116,15 +102,10 @@ def add_to_responded():
             saved_questions.append(new_question)
             
             # Update user
-            supabase.table('users').update({
+            db.supabase.table('users').update({
                 'saved_questions': saved_questions
             }).eq('UID', user_id).execute()
 
-        return jsonify({
-            'success': True,
-        }), 200
+        return db.format_response(True)
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return db.format_response(False, error=str(e), status_code=500)
