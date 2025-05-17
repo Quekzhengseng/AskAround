@@ -1,7 +1,7 @@
 // app/profile/page.jsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 
 import Sidebar from "./../components/profile/Sidebar";
 import BackButton from "./../components/profile/BackButton";
@@ -11,7 +11,7 @@ import { UseAuth } from "./../utils/hooks/UseAuth";
 import { UserAPI } from "../utils/SurveyAPI";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function Profile() {
+function Profile() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { userData } = UseAuth();
@@ -118,5 +118,13 @@ export default function Profile() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function ProfilePageWrapper() {
+  return (
+    <Suspense fallback={<div>Loading profile...</div>}>
+      <Profile />
+    </Suspense>
   );
 }
