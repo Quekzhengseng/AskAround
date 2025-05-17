@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import SurveyContainer from "./../components/survey/SurveyContainer";
@@ -9,11 +9,11 @@ import { UseAuth } from "./../utils/hooks/UseAuth";
 import { SurveyAPI, UserAPI } from "./../utils/SurveyAPI";
 import SurveyCompletionModal from "./../components/survey/SurveyCompletionModal";
 
-export default function SurveyPage() {
+function SurveyPage() {
   // Get the survey ID from URL params
   const searchParams = useSearchParams();
   const surveyId = searchParams.get("id");
-  const isGuestParam = searchParams.get("guest") === "true"; 
+  const isGuestParam = searchParams.get("guest") === "true";
   const router = useRouter();
 
   // State for survey and loading status
@@ -27,30 +27,34 @@ export default function SurveyPage() {
   useEffect(() => {
     // Check for token and handle redirection
     const token = localStorage.getItem("token");
-    
+
     // If no token and there's no guest param, redirect to login
     if (!token && !isGuestParam) {
       router.push("/login");
       return;
     }
-    
+
     // If no token and there is a guest param, redirect to guest page
     if (!token && isGuestParam) {
       router.push(`/guest?id=${surveyId}`);
       return;
     }
-    
+
     // If the user has a token, they can stay on this page whether there's a guest param or not
   }, [isGuestParam, router, surveyId]);
 
   // Use auth hook with skipRedirect so we don't interrupt our custom redirect logic
-  const { userData, loading: authLoading, error: authError } = UseAuth({ skipRedirect: true });
+  const {
+    userData,
+    loading: authLoading,
+    error: authError,
+  } = UseAuth({ skipRedirect: true });
 
   // Function to fetch the specific survey
   const fetchSurvey = async () => {
-    // Don't fetch if no user data 
+    // Don't fetch if no user data
     if (!userData) return;
-    
+
     if (!surveyId) {
       setError("No survey ID provided");
       setSurveyLoading(false);
@@ -285,7 +289,9 @@ export default function SurveyPage() {
               </svg>
             </motion.div>
             <p className="text-indigo-500 font-medium">
-              {authLoading ? "Checking authentication..." : "Loading your survey..."}
+              {authLoading
+                ? "Checking authentication..."
+                : "Loading your survey..."}
             </p>
           </div>
         )}
@@ -329,60 +335,69 @@ export default function SurveyPage() {
         )}
 
         {/* No survey available */}
-        {!authLoading && !surveyLoading && !error && !authError && !currentSurvey && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="bg-white rounded-2xl shadow-lg p-12 text-center max-w-2xl mx-auto"
-          >
-            <div className="inline-block mb-6 p-5 bg-indigo-50 rounded-full">
-              <svg
-                className="w-12 h-12 text-indigo-500"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.5"
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">
-              Survey Not Found
-            </h2>
-            <p className="text-gray-600 mb-6">
-              The requested survey doesn't exist or isn't available.
-            </p>
-            <Link
-              href="/"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+        {!authLoading &&
+          !surveyLoading &&
+          !error &&
+          !authError &&
+          !currentSurvey && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="bg-white rounded-2xl shadow-lg p-12 text-center max-w-2xl mx-auto"
             >
-              Return to All Surveys
-            </Link>
-          </motion.div>
-        )}
+              <div className="inline-block mb-6 p-5 bg-indigo-50 rounded-full">
+                <svg
+                  className="w-12 h-12 text-indigo-500"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.5"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                Survey Not Found
+              </h2>
+              <p className="text-gray-600 mb-6">
+                The requested survey doesn't exist or isn't available.
+              </p>
+              <Link
+                href="/"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              >
+                Return to All Surveys
+              </Link>
+            </motion.div>
+          )}
 
         {/* Survey container */}
-        {!authLoading && !surveyLoading && !error && !authError && currentSurvey && userData && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="transition-all duration-300"
-          >
-            <SurveyContainer
-              key={currentSurvey.id}
-              survey={currentSurvey}
-              userId={userData.UID}
-              onComplete={handleSurveyComplete}
-            />
-          </motion.div>
-        )}
+        {!authLoading &&
+          !surveyLoading &&
+          !error &&
+          !authError &&
+          currentSurvey &&
+          userData && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="transition-all duration-300"
+            >
+              <SurveyContainer
+                key={currentSurvey.id}
+                survey={currentSurvey}
+                userId={userData.UID}
+                onComplete={handleSurveyComplete}
+              />
+            </motion.div>
+          )}
       </main>
 
       <footer className="mt-16 bg-gray-50 border-t border-gray-100 py-12">
@@ -403,7 +418,7 @@ export default function SurveyPage() {
           </div>
         </div>
       </footer>
-      
+
       {/* Survey Completion Modal */}
       {userData && currentSurvey && (
         <SurveyCompletionModal
@@ -418,5 +433,13 @@ export default function SurveyPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function SurveyPageWrapper() {
+  return (
+    <Suspense fallback={<div>Loading Survey...</div>}>
+      <SurveyPage />
+    </Suspense>
   );
 }
