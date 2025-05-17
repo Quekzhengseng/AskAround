@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserAPI } from "./../SurveyAPI";
 
-export const UseAuth = () => {
+export const UseAuth = ({ skipRedirect = false } = {}) => {
   const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
 
@@ -12,7 +13,11 @@ export const UseAuth = () => {
     const token = localStorage.getItem("token");
 
     if (!token) {
-      router.push("/login");
+      setLoading(false);
+      // Only redirect if skipRedirect is false
+      if (!skipRedirect) {
+        router.push("/login");
+      }
       return;
     }
 
@@ -23,12 +28,18 @@ export const UseAuth = () => {
         setUserData(fetchedUserData);
       } catch (err) {
         setError("Invalid token");
-        router.push("/login");
+        // Clear invalid token and redirect if not skipping redirects
+        localStorage.removeItem("token");
+        if (!skipRedirect) {
+          router.push("/login");
+        }
+      } finally {
+        setLoading(false);
       }
     };
 
     verifyUser();
-  }, [router]);
+  }, [router, skipRedirect]);
 
-  return { userData };
+  return { userData, loading, error };
 };

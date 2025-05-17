@@ -13,28 +13,52 @@ export default function SurveyPage() {
   // Get the survey ID from URL params
   const searchParams = useSearchParams();
   const surveyId = searchParams.get("id");
+  const isGuestParam = searchParams.get("guest") === "true"; 
   const router = useRouter();
 
   // State for survey and loading status
   const [currentSurvey, setCurrentSurvey] = useState(null);
-  const { userData } = UseAuth();
-  const [loading, setLoading] = useState(true);
+  const [surveyLoading, setSurveyLoading] = useState(true);
   const [error, setError] = useState(null);
   const [initialUserPoints, setInitialUserPoints] = useState(0);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
 
+  // Handle authentication and redirects
+  useEffect(() => {
+    // Check for token and handle redirection
+    const token = localStorage.getItem("token");
+    
+    // If no token and there's no guest param, redirect to login
+    if (!token && !isGuestParam) {
+      router.push("/login");
+      return;
+    }
+    
+    // If no token and there is a guest param, redirect to guest page
+    if (!token && isGuestParam) {
+      router.push(`/guest?id=${surveyId}`);
+      return;
+    }
+    
+    // If the user has a token, they can stay on this page whether there's a guest param or not
+  }, [isGuestParam, router, surveyId]);
+
+  // Use auth hook with skipRedirect so we don't interrupt our custom redirect logic
+  const { userData, loading: authLoading, error: authError } = UseAuth({ skipRedirect: true });
+
   // Function to fetch the specific survey
   const fetchSurvey = async () => {
-    if (!userData) return; // Don't fetch if no user
-
+    // Don't fetch if no user data 
+    if (!userData) return;
+    
     if (!surveyId) {
       setError("No survey ID provided");
-      setLoading(false);
+      setSurveyLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
+      setSurveyLoading(true);
       // Get all surveys the user needs to answer
       const surveys = await SurveyAPI.getUserToBeAnsweredSurveys(
         localStorage.getItem("token")
@@ -57,14 +81,17 @@ export default function SurveyPage() {
       console.error("Error fetching survey:", err);
       setError(err.message || "Failed to fetch survey");
     } finally {
-      setLoading(false);
+      setSurveyLoading(false);
     }
   };
 
-  // Initial fetch of the survey
+  // Initial fetch of the survey - only run after authentication is checked
   useEffect(() => {
-    fetchSurvey();
-  }, [surveyId, userData]);
+    // Only fetch survey if auth loading is complete and user is authenticated
+    if (!authLoading && userData) {
+      fetchSurvey();
+    }
+  }, [authLoading, userData, surveyId]);
 
   const handleSurveyComplete = async () => {
     if (!userData || !currentSurvey) return;
@@ -185,8 +212,8 @@ export default function SurveyPage() {
           </Link>
         </motion.div>
 
-        {/* Loading state */}
-        {loading && (
+        {/* Loading state - include auth loading */}
+        {(authLoading || surveyLoading) && (
           <div className="flex flex-col justify-center items-center py-16">
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
@@ -258,13 +285,13 @@ export default function SurveyPage() {
               </svg>
             </motion.div>
             <p className="text-indigo-500 font-medium">
-              Loading your survey...
+              {authLoading ? "Checking authentication..." : "Loading your survey..."}
             </p>
           </div>
         )}
 
         {/* Error state */}
-        {error && (
+        {(error || authError) && !authLoading && !surveyLoading && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -289,7 +316,7 @@ export default function SurveyPage() {
                 <p className="text-lg font-medium text-red-700">
                   Couldn't load survey
                 </p>
-                <p className="text-red-600 mt-1">{error}</p>
+                <p className="text-red-600 mt-1">{error || authError}</p>
                 <Link
                   href="/"
                   className="mt-3 inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -302,7 +329,7 @@ export default function SurveyPage() {
         )}
 
         {/* No survey available */}
-        {!loading && !error && !currentSurvey && (
+        {!authLoading && !surveyLoading && !error && !authError && !currentSurvey && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -341,7 +368,7 @@ export default function SurveyPage() {
         )}
 
         {/* Survey container */}
-        {!loading && !error && currentSurvey && (
+        {!authLoading && !surveyLoading && !error && !authError && currentSurvey && userData && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -376,17 +403,20 @@ export default function SurveyPage() {
           </div>
         </div>
       </footer>
+      
       {/* Survey Completion Modal */}
-      <SurveyCompletionModal
-        isOpen={showCompletionModal}
-        onClose={() => {
-          setShowCompletionModal(false);
-          router.push("/");
-        }}
-        survey={currentSurvey}
-        userId={userData?.UID}
-        initialPoints={initialUserPoints}
-      />
+      {userData && currentSurvey && (
+        <SurveyCompletionModal
+          isOpen={showCompletionModal}
+          onClose={() => {
+            setShowCompletionModal(false);
+            router.push("/");
+          }}
+          survey={currentSurvey}
+          userId={userData?.UID}
+          initialPoints={initialUserPoints}
+        />
+      )}
     </div>
   );
 }

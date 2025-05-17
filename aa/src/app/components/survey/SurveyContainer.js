@@ -17,27 +17,62 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
   const [error, setError] = useState(null);
   const [surveyCompleted, setSurveyCompleted] = useState(false);
   const [points, setPoints] = useState(0);
-  const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
+  // const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
+  const [isLoadingInitialData, setIsLoadingInitialData] = useState(!!userId);
 
   // Fetch initial user data to get starting points
   useEffect(() => {
-    async function initializeUserData() {
-      if (!userId) return;
+    let isMounted = true; // Flag for cleanup
+
+    async function fetchUserData() {
+     // *** Exit early for guests (userId is "") ***
+     if (!userId) {
+       if (isMounted) setIsLoadingInitialData(false); // Ensure loading stops
+       return; // Don't fetch data
+     }
+
+      // Proceed only if component is still mounted and we have a userId
+      if (!isMounted) return;
 
       try {
-        setIsLoadingInitialData(true);
-        const userData = await UserAPI.getUserData(
-          localStorage.getItem("token")
-        );
+       // Use API object from import
+       const userData = await UserAPI.getUserData(localStorage.getItem('token')); // Use token
+        // *** Update points state ONLY if we have data ***
+       if(isMounted && userData && typeof userData.points === 'number') {
+          setPoints(userData.points);
+       } else if (isMounted) {
+          // Handle case where user data is fetched but points are missing/invalid
+          setPoints(0); // Default to 0
+       }
       } catch (err) {
         console.error("Error fetching initial user data:", err);
+       if (isMounted) {
+         // setError("Failed to load user points."); // Optional: Set error state
+         setPoints(0); // Reset points on error
+       }
       } finally {
-        setIsLoadingInitialData(false);
+        if (isMounted) {
+          setIsLoadingInitialData(false);
+        }
       }
     }
 
-    initializeUserData();
+    // Set loading state ONLY if userId indicates a logged-in user
+   if (userId) {
+      setIsLoadingInitialData(true);
+      fetchUserData();
+   } else {
+     // Ensure loading is false for guests from the start
+     setIsLoadingInitialData(false);
+   }
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+
   }, [userId]);
+
 
   // Make sure we have questions
   if (!survey || !survey.questions || survey.questions.length === 0) {
@@ -69,7 +104,7 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
     }, 800); // Match this duration with the pulse animation duration
 
     // Save the current answer to the API
-    if (hasAnswer && currentQuestion.addable) {
+    if (userId && hasAnswer && currentQuestion.addable) {
       await saveCurrentAnswer();
     }
 
@@ -112,7 +147,7 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
   };
 
   const submitSurvey = async () => {
-    if (!userId) {
+    if (userId === null || userId === undefined) {
       console.error("Cannot submit survey: No user ID provided");
       return;
     }
@@ -135,7 +170,7 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
     }
     try {
       // Save final answer if needed
-      if (hasAnswer && currentQuestion.addable) {
+      if (!userId && hasAnswer && currentQuestion.addable) {
         await saveCurrentAnswer();
       }
 
@@ -150,6 +185,7 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
           userId: userId,
           answers: answersPayload.length,
         });
+        console.log("answers", answersPayload)
 
         await UserAPI.submitFullResponse(
           survey.survey_id,
@@ -216,6 +252,7 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 @container rounded-xl relative">
       {/* Points Showcase*/}
+      { userId &&
       <div className="absolute top-4 right-4 bg-green-100 text-green-700 font-semibold px-4 py-2 rounded-lg shadow">
         {isLoadingInitialData ? (
           <span className="flex items-center">
@@ -248,6 +285,7 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
           </span>
         )}
       </div>
+        }
       <h2 className="text-2xl font-bold mb-4">{survey.title}</h2>
 
       <div className="mb-8 flex items-center">
@@ -270,8 +308,8 @@ const SurveyContainer = ({ survey, userId, onComplete }) => {
               FIRE {achievementCount}
             </motion.div>
           )}
-        </AnimatePresence>
-      </div>
+        </AnimatePresence> 
+      </div> 
 
       {error && (
         <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-3 rounded">

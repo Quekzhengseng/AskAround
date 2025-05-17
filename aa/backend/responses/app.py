@@ -1,3 +1,4 @@
+# Responses service
 import os
 import uuid
 import traceback
@@ -20,7 +21,7 @@ if not supabase_url or not supabase_key or not JWT_SECRET_KEY:
     raise ValueError("Missing Supabase credentials or JWT Secret Key")
 supabase = create_client(supabase_url, supabase_key)
 print("Supabase initialized successfully for Responses Service!")
-
+STATIC_GUEST_UID = "00000000-0000-0000-0000-000000000000"
 
 # --- Helper Functions ---
 def is_valid_uuid(uuid_to_test, version=4):
@@ -32,16 +33,10 @@ def is_valid_uuid(uuid_to_test, version=4):
 def _check_or_create_user(uid_from_request):
     """ Creates guest user if uid_from_request is blank. Returns UID or error tuple."""
     if not uid_from_request or uid_from_request.strip() == "":
-        new_uid = str(uuid.uuid4())
-        print(f"Guest path: Generating new UID: {new_uid}")
-        try:
-            new_user_data = {'UID': new_uid, 'username': f'anon_{new_uid[:8]}'}
-            insert_user_response = supabase.table('users').insert(new_user_data).execute()
-            if hasattr(insert_user_response, 'error') and insert_user_response.error:
-                 return "Database error creating user", 500
-            return new_uid
-        except Exception: return "Server error creating user", 500
-    else: return "Invalid request: Non-guest UID requires authentication", 401
+        print(f"Guest path: Using static guest UID: {STATIC_GUEST_UID}")
+        return STATIC_GUEST_UID # Return the static guest UID
+    else:
+        return "Invalid state: _check_or_create_user expects empty UID for guest flow or pre-auth UID", 500
 
 
 def _verify_and_get_uid_from_token(token):
@@ -112,16 +107,15 @@ def create_response():
 
         # 4. Determine Final UID (Guest or Authenticated)
         if not final_uid: # No valid token processed
-            # Check body for UID to see if it's a guest or invalid attempt
-            # --- Use .get() with default for uid_from_request ---
-            uid_from_request = data.get('UID', '')
-            # ---
-            if not uid_from_request or uid_from_request.strip() == "": # Guest? (Handles missing key or blank value)
+            uid_from_request = data.get('UID', '') 
+            if not uid_from_request or uid_from_request.strip() == "": 
                 user_create_result = _check_or_create_user("")
-                if isinstance(user_create_result, tuple): return jsonify({'success': False, 'error': user_create_result[0]}), user_create_result[1]
-                final_uid = user_create_result
+                if isinstance(user_create_result, tuple):
+                    return jsonify({'success': False, 'error': user_create_result[0]}), user_create_result[1]
+                final_uid = user_create_result 
+                print(f"Guest response submission. Using UID: {final_uid}")
             else: # Non-blank UID in body WITHOUT valid token -> Reject
-                return jsonify({'success': False, 'error': 'Auth required'}), 401
+                return jsonify({'success': False, 'error': 'Authentication required for specified UID'}), 401
 
         # 5. Insert Response
         response_data = { 'survey_id_fk': survey_id, 'UID_fk': final_uid, 'answers': answers }
